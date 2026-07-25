@@ -13,7 +13,13 @@ class OrderController extends Controller
         $q = Order::orderBy('created_at', 'desc');
         if ($request->filled('status')) $q->where('status', $request->status);
         if ($request->filled('table_id')) $q->where('table_id', $request->table_id);
-        return response()->json(['data' => $q->get()]);
+
+        $total = $q->count();
+        $page = (int) $request->input('page', 1);
+        $limit = (int) $request->input('limit', 20);
+        $data = $q->offset(($page - 1) * $limit)->limit($limit)->get();
+
+        return response()->json(['data' => $data, 'total' => $total]);
     }
 
     public function store(Request $request)

@@ -82,56 +82,37 @@ export async function fetchPaginatedOrders(
   limit: number = 20,
   status?: string
 ): Promise<PaginatedResponse<Order>> {
-  const from = (page - 1) * limit;
-  const to = from + limit - 1;
-
-  let query = supabase
-    .from("orders")
-    .select("*", { count: "exact" })
-    .order("created_at", { ascending: false })
-    .range(from, to);
-
-  if (status) {
-    query = query.eq("status", status);
-  }
-
-  const { data, count, error } = await query;
-
-  if (error) {
-    console.error("fetchPaginatedOrders error:", error.message);
-    throw error;
-  }
-
-  const dbOrders = ((data as Record<string, unknown>[]) || []).map(mapOrder);
-
-  // Apply robust local fallback cache overrides if present
-  try {
-    const cachedOrdersStr = localStorage.getItem("pawon_orders_cache");
-    if (cachedOrdersStr) {
-      const cachedOrders = JSON.parse(cachedOrdersStr);
-      const modifiedOrders = dbOrders.map(order => {
-        if (cachedOrders[order.id]) {
-          return mapOrder(cachedOrders[order.id]);
-        }
-        return order;
-      });
+  if (isBackendConfigured()) {
+    const qs = new URLSearchParams();
+    qs.set('page', String(page));
+    qs.set('limit', String(limit));
+    if (status) qs.set('status', status);
+    const res = await apiFetch<{ data: any[]; total: number }>('GET', `/api/v1/orders?${qs.toString()}`);
+    if (res.ok) {
+      const arr = Array.isArray(res.data) ? res.data : (res.data as { data: any[] }).data ?? [];
       return {
-        data: modifiedOrders,
-        total: count || 0,
+        data: arr.map(mapOrder),
+        total: (res.data as any).total || arr.length,
         page,
         limit,
       };
     }
-  } catch (e) {
-    console.error("[ROBUST FALLBACK] Error applying local cache overrides in paginated:", e);
   }
-
-  return {
-    data: dbOrders,
-    total: count || 0,
-    page,
-    limit,
-  };
+  // Fallback localStorage
+  try {
+    const raw = localStorage.getItem('local_orders');
+    let list: any[] = raw ? JSON.parse(raw) : [];
+    if (status) list = list.filter((o) => (o.status || 'pending') === status);
+    const start = (page - 1) * limit;
+    return {
+      data: list.slice(start, start + limit).map(mapOrder),
+      total: list.length,
+      page,
+      limit,
+    };
+  } catch {
+    return { data: [], total: 0, page, limit };
+  }
 }
 
 /**

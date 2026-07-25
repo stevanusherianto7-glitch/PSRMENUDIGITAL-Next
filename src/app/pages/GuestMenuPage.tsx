@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { SEED_MENU, menuCategories, rp, BRAND_NAME, APP_LOGO as logoImg, RESTAURANT_COORDS, ALLOWED_RADIUS_METERS } from "../data";
 import { supabase } from "../../lib/supabase";
+import { fetchMenu } from "../../lib/repository/menu";
 import { createOrder, fetchOrders, deleteOrder, updateOrder, getOrderDuration } from "../api";
 import type { MenuItem, CartItem, Order, OrderMode } from "../types";
 import { ErrorBoundary } from "../components/ErrorBoundary";
@@ -398,11 +399,10 @@ export default function GuestMenuPage() {
       }, 2000);
 
       try {
-        console.log("[DEBUG] Fetching menu items from Supabase...");
-        const { data, error } = await supabase.from("menu_items").select("*");
+        console.log("[DEBUG] Fetching menu items from backend (Laravel) / localStorage...");
+        const data = await fetchMenu();
+        const error = null;
         clearTimeout(safetyTimeout);
-        console.log("[DEBUG] Supabase select finished. error:", error, "data count:", data?.length);
-        if (error) throw error;
         if (data && data.length > 0) {
           const dbById = new Map(data.map((r: any) => [r.id, r]));
           const merged: MenuItem[] = SEED_MENU.map(seed => {

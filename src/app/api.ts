@@ -11,7 +11,7 @@
  *   - Supabase Realtime tidak bisa subscribe ke kv_store
  */
 
-import { supabase } from "../lib/supabase";
+import { apiFetch, isBackendConfigured } from "../lib/api";
 import type {
   Order,
   CartItem,
@@ -52,48 +52,26 @@ export function mapOrder(o: unknown): Order {
 }
 
 export async function fetchOrders(status?: string, tableId?: string): Promise<Order[]> {
-  let query = supabase
-    .from("orders")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  if (status) {
-    query = query.eq("status", status);
-  }
-  if (tableId) {
-    query = query.eq("table_id", tableId);
-  }
-
-  // Bypass browser cache for GET requests
-  query = query.neq("id", `dummy-${Date.now()}`);
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error("fetchOrders error:", error.message);
-    throw error;
-  }
-
-  const dbOrders = ((data as Record<string, unknown>[]) || []).map(mapOrder);
-
-  // Apply robust local fallback cache overrides if present
-  try {
-    const cachedOrdersStr = localStorage.getItem("pawon_orders_cache");
-    if (cachedOrdersStr) {
-      const cachedOrders = JSON.parse(cachedOrdersStr);
-      return dbOrders.map(order => {
-        if (cachedOrders[order.id]) {
-          console.warn(`[ROBUST FALLBACK] Overriding order ${order.id} status from local fallback cache: ${order.status} -> ${cachedOrders[order.id].status}`);
-          return mapOrder(cachedOrders[order.id]);
-        }
-        return order;
-      });
+  if (isBackendConfigured()) {
+    const qs = new URLSearchParams();
+    if (status) qs.set('status', status);
+    if (tableId) qs.set('table_id', tableId);
+    const res = await apiFetch<{ data: any[] }>('GET', `/api/v1/orders?${qs.toString()}`);
+    if (res.ok) {
+      const arr = Array.isArray(res.data) ? res.data : (res.data as { data: any[] }).data ?? [];
+      return (arr as unknown[]).map(mapOrder);
     }
-  } catch (e) {
-    console.error("[ROBUST FALLBACK] Error applying local cache overrides:", e);
   }
-
-  return dbOrders;
+  // Fallback localStorage
+  try {
+    const raw = localStorage.getItem('local_orders');
+    let list: any[] = raw ? JSON.parse(raw) : [];
+    if (status) list = list.filter((o) => (o.status || 'pending') === status);
+    if (tableId) list = list.filter((o) => (o.tableId || o.table_id) === tableId);
+    return list.map(mapOrder);
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -172,7 +150,7 @@ export async function createOrder(payload: {
 }): Promise<Order> {
   const order: Record<string, any> = {
     id: generateOrderId(),
-    table_id: payload.tableId, // Send to both snake_case and camelCase for DB compatibility
+    table_id: payload.tableId,
     tableId: payload.tableId,
     items: payload.items.map((c) => ({
       id: c.id,
@@ -184,195 +162,70 @@ export async function createOrder(payload: {
     subtotal: payload.subtotal,
     total: payload.total,
     notes: payload.notes || "",
-    orderMode: payload.orderMode, // Kolom di DB menggunakan camelCase
+    order_mode: payload.orderMode,
+    orderMode: payload.orderMode,
     status: "pending" as OrderStatus,
     type: payload.type,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
+  if (payload.idempotencyKey) order.idempotency_key = payload.idempotencyKey;
 
-  // Sertakan idempotency_key jika tersedia (server-side dedup)
-  if (payload.idempotencyKey) {
-    order.idempotency_key = payload.idempotencyKey;
+  if (isBackendConfigured()) {
+    const res = await apiFetch<Order>('POST', '/api/v1/orders', order);
+    if (res.ok) return mapOrder(res.data);
+    // fall through ke localStorage bila backend gagal
   }
-
-  const { data, error } = await supabase
-    .from("orders")
-    .insert(order)
-    .select()
-    .single();
-
-  if (error) {
-    // Jika error karena kolom idempotency_key belum ada di DB, retry tanpa kolom tersebut
-    const isMissingColumnError = error.message?.includes("idempotency_key") && 
-      (error.code === "PGRST204" || error.code === "42703" || error.message?.includes("column"));
-    
-    if (isMissingColumnError && payload.idempotencyKey) {
-      console.warn("[ROBUST FALLBACK] Kolom 'idempotency_key' belum ada di DB. Retry insert tanpa kolom tersebut...");
-      const { idempotency_key: _, ...retryOrder } = order;
-      
-      const { data: retryData, error: retryError } = await supabase
-        .from("orders")
-        .insert(retryOrder)
-        .select()
-        .single();
-      
-      if (retryError) {
-        console.error("createOrder retry error:", retryError.message);
-        throw retryError;
-      }
-      return mapOrder(retryData);
-    }
-
-    console.error("createOrder error:", error.message);
-    throw error;
-  }
-
-  return mapOrder(data);
+  // Fallback localStorage
+  try {
+    const raw = localStorage.getItem('local_orders');
+    const list: any[] = raw ? JSON.parse(raw) : [];
+    list.push(order);
+    localStorage.setItem('local_orders', JSON.stringify(list));
+  } catch { /* ignore */ }
+  return mapOrder(order);
 }
 
 /**
  * Update an existing order (e.g., change status).
  */
 export async function updateOrder(id: string, patch: Partial<Order>): Promise<Order> {
-  // Sanitize: prevent overwriting id or created_at
-  const { id: _, created_at: __, ...safePatch } = patch as Record<string, unknown>;
+  const { id: _omit, created_at: _omit2, ...safePatch } = patch as Record<string, unknown>;
+  const body = { ...safePatch, updated_at: new Date().toISOString() };
 
-  const { data, error } = await supabase
-    .from("orders")
-    .update({
-      ...safePatch,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", id)
-    .select()
-    .single();
-
-  const dataResult = data;
-  let errorResult = error;
-
-  if (errorResult) {
-    const isMissingServedAtError = errorResult.message && errorResult.message.includes('served_at');
-    if (isMissingServedAtError) {
-      console.warn(`[ROBUST FALLBACK] Column 'served_at' is missing in remote DB schema. Retrying update without 'served_at'...`);
-      const { served_at: _, ...retryPatch } = safePatch as Record<string, unknown>;
-      
-      const { data: retryData, error: retryError } = await supabase
-        .from("orders")
-        .update({
-          ...retryPatch,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", id)
-        .select()
-        .single();
-        
-      if (!retryError) {
-        // Cache the served_at locally in pawon_orders_cache
-        try {
-          const cachedOrdersStr = localStorage.getItem("pawon_orders_cache") || "{}";
-          const cachedOrders = JSON.parse(cachedOrdersStr);
-          cachedOrders[id] = {
-            ...(cachedOrders[id] || {}),
-            ...patch,
-            updated_at: new Date().toISOString()
-          };
-          localStorage.setItem("pawon_orders_cache", JSON.stringify(cachedOrders));
-        } catch (e) {
-          console.error("[ROBUST FALLBACK] Failed to cache local served_at:", e);
-        }
-        return mapOrder(retryData);
-      }
-      errorResult = retryError;
-    }
-
-    const isTriggerError = errorResult.code === '42703' || (errorResult.message && errorResult.message.includes('order_type'));
-    
-    if (!isTriggerError) {
-      console.error(`updateOrder(${id}) error:`, errorResult.message);
-    }
-    
-    // Check for PostgreSQL 42703 (Undefined Column / Trigger error with "order_type")
-    if (isTriggerError) {
-      console.warn(`[ROBUST FALLBACK] Database schema/trigger error (42703) on updateOrder(${id}). Executing atomic DELETE-then-INSERT database synchronization...`);
-      
-      try {
-        // 1. Fetch the base order record via SELECT (SELECT is safe and doesn't trigger UPDATE triggers)
-        const { data: existing, error: fetchErr } = await supabase
-          .from("orders")
-          .select("*")
-          .eq("id", id)
-          .single();
-          
-        if (!fetchErr && existing) {
-          // If served_at was missing from the DB schema, strip it from the merged insert payload too
-          const finalPatch = isMissingServedAtError ? (() => { const { served_at, ...rest } = safePatch as Record<string, unknown>; return rest; })() : safePatch;
-          
-          const merged = {
-            ...existing,
-            ...finalPatch,
-            updated_at: new Date().toISOString()
-          };
-          
-          // 2. Perform DELETE from the database
-          const { error: deleteErr } = await supabase
-            .from("orders")
-            .delete()
-            .eq("id", id);
-            
-          if (deleteErr) {
-            console.error(`[ROBUST FALLBACK] DELETE operation failed:`, deleteErr.message);
-            throw deleteErr;
-          }
-          
-          // 3. Perform INSERT of the updated record back to the database
-          const { data: inserted, error: insertErr } = await supabase
-            .from("orders")
-            .insert(merged)
-            .select()
-            .single();
-            
-          if (insertErr) {
-            console.error(`[ROBUST FALLBACK] INSERT operation failed:`, insertErr.message);
-            throw insertErr;
-          }
-          
-          // 4. Cache the merged order back into LocalStorage
-          const cachedOrdersStr = localStorage.getItem("pawon_orders_cache") || "{}";
-          const cachedOrders = JSON.parse(cachedOrdersStr);
-          cachedOrders[id] = {
-            ...merged,
-            ...patch // Keep original patch with served_at in local cache
-          };
-          localStorage.setItem("pawon_orders_cache", JSON.stringify(cachedOrders));
-          
-          console.log(`[ROBUST FALLBACK] Order ${id} status successfully persisted in remote database via atomic workaround. New status:`, inserted.status);
-          return mapOrder(inserted);
-        }
-      } catch (fallbackErr) {
-        console.error("[ROBUST FALLBACK] Failed to process database-synchronized fallback:", fallbackErr);
-      }
-    }
-    
-    throw errorResult;
+  if (isBackendConfigured()) {
+    const res = await apiFetch<Order>('PUT', `/api/v1/orders/${id}`, body);
+    if (res.ok) return mapOrder(res.data);
+    // fall through ke localStorage bila backend gagal
   }
-
-  return mapOrder(dataResult);
+  // Fallback localStorage
+  try {
+    const raw = localStorage.getItem('local_orders');
+    const list: any[] = raw ? JSON.parse(raw) : [];
+    const idx = list.findIndex((o) => o.id === id);
+    if (idx >= 0) {
+      list[idx] = { ...list[idx], ...body };
+      localStorage.setItem('local_orders', JSON.stringify(list));
+      return mapOrder(list[idx]);
+    }
+  } catch { /* ignore */ }
+  return mapOrder({ id, ...body } as unknown as Order);
 }
 
 /**
  * Delete an order by ID.
  */
 export async function deleteOrder(id: string): Promise<void> {
-  const { error } = await supabase
-    .from("orders")
-    .delete()
-    .eq("id", id);
-
-  if (error) {
-    console.error(`deleteOrder(${id}) error:`, error.message);
-    throw error;
+  if (isBackendConfigured()) {
+    const res = await apiFetch('DELETE', `/api/v1/orders/${id}`);
+    if (res.ok) return;
   }
+  // Fallback localStorage
+  try {
+    const raw = localStorage.getItem('local_orders');
+    const list: any[] = raw ? JSON.parse(raw) : [];
+    localStorage.setItem('local_orders', JSON.stringify(list.filter((o) => o.id !== id)));
+  } catch { /* ignore */ }
 }
 
 /**

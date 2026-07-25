@@ -7,7 +7,8 @@ import {
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { rp, menuCategories, SEED_MENU } from "../data";
-import { PhotoUploader, genId, isUrl } from "./PhotoUploader";
+import { PhotoUploader, genId } from "./PhotoUploader";
+import { menuImageUrl } from "../../lib/cloudinary";
 import { MenuItemModal } from "./MenuItemModal";
 import { LayoutEditor } from "./LayoutEditor";
 import type { MenuItem } from "../types";
@@ -243,7 +244,7 @@ export function MenuManagement({
                 </button>
 
                 {filtered.map((item) => {
-                  const previewSrc = item.image && isUrl(item.image) ? item.image : item.image || "";
+                  const previewSrc = menuImageUrl(item.image)
                   return (
                     <div
                       key={item.id}

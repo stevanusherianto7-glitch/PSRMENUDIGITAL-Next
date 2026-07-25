@@ -152,40 +152,55 @@ Foto menu **tidak** lagi disimpan di Supabase Storage. Menggunakan **Cloudinary*
 - Di DB hanya simpan **public_id** (`menu_items.image`), BUKAN URL penuh.
 - Frontend bangun URL transform on-the-fly.
 
-### 4.1 Helper URL (frontend)
+### 4.1 Helper URL (frontend) — IMPLEMENTED
 
 ```ts
-// src/lib/cloudinary.ts  (BARU — menggantikan path Supabase Storage)
-const CLOUD = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME ?? "dwdaydzsh";
-
-export function menuImageUrl(publicId: string, opts?: { w?: number; h?: number; q?: number }) {
-  if (!publicId) return FALLBACK_SVG;                       // placeholder lokal
-  if (/^https?:\/\//.test(publicId) || publicId.startsWith("data:")) return publicId; // sudah URL
-  const { w = 600, h = 400, q = "auto" } = opts ?? {};
-  return `https://res.cloudinary.com/${CLOUD}/image/upload/w_${w},h_${h},c_fill,q_${q},f_auto/${publicId}`;
+// src/lib/cloudinary.ts  (SUDAH ADA — menggantikan path Supabase Storage)
+// CLOUDINARY_CLOUD_NAME diambil dari import.meta.env.VITE_CLOUDINARY_CLOUD_NAME ?? "dwdaydzsh"
+export function menuImageUrl(image, opts?) {
+  // image bisa: public_id Cloudinary | URL absolut (legacy Supabase) | data: | kosong
+  // - kosong -> MENU_IMAGE_FALLBACK (SVG lokal)
+  // - URL absolut/data: -> lewat utuh (backward-compat)
+  // - public_id -> https://res.cloudinary.com/{cloud}/image/upload/w_,h_,c_fill,q_auto,f_auto/{id}
 }
 ```
 
-### 4.2 Pemakaian di Komponen Menu (kontrak, belum diubah kode)
+Fungsi murni `resolveMenuImage`/`buildCloudinaryUrl` diekspos untuk testability (Jest).
 
-```tsx
-<img
-  src={menuImageUrl(item.image)}      // item.image = public_id Cloudinary
-  onError={(e) => (e.currentTarget.src = FALLBACK_SVG)}
-  alt={item.name}
-/>
+### 4.2 Pemakaian di Komponen Menu — IMPLEMENTED
+
+| Komponen | Status |
+|----------|--------|
+| `MenuManagement.tsx` (kartu menu) | ✅ `menuImageUrl(item.image)` |
+| `GuestMenuPage.tsx` via `OptimizedImage` (list/selected/gallery) | ✅ `menuImageUrl` |
+| `KasirModule.tsx` (item keranjang) | ✅ `menuImageUrl(...)` |
+| `PhotoUploader.tsx` (event gallery `QrMenuModule`) | ⏳ tetap Supabase (bukan foto menu; Fase 3) |
+
+### 4.3 Upload Flow — IMPLEMENTED (mock-mode, real-mode saat Laravel ada)
+
+```ts
+// src/lib/menuUpload.ts
+uploadMenuPhoto(file, name, { apiBase }) -> { public_id }
+// - mock mode (VITE_API_URL kosong): hasilkan public_id lokal `menu/<slug>_<rand>`
+//   (langsung kompatibel menuImageUrl, tanpa backend)
+// - real mode (VITE_API_URL diisi): POST {apiBase}/api/menu/upload (multipart)
+//   -> Laravel proxy -> Cloudinary server-side -> { public_id }
+
+// src/app/components/MenuPhotoUploader.tsx (pengganti PhotoUploader untuk MENU)
+// dipakai di MenuItemModal.tsx (form tambah/edit menu)
 ```
 
-### 4.3 Upload Flow
-
-```
-Komponen Upload Foto ──► POST /api/v1/menus/{id}/photo (multipart)
-  └─ Laravel ──► Cloudinary upload (server-side, pakai CLOUDINARY_URL di .env server)
-        ◄── { public_id }
-  Laravel simpan public_id ke menu_items.image
+```text
+MenuPhotoUploader ──► uploadMenuPhoto()
+  ├─ mock: public_id lokal `menu/<slug>_<rand>` (tanpa backend)
+  └─ real: POST {VITE_API_URL}/api/menu/upload (multipart)
+        └─ Laravel ──► Cloudinary (CLOUDINARY_URL server-only)
+              ◄── { public_id }
+        Laravel simpan public_id ke menu_items.image
 ```
 
 > **Keamanan:** `.env` frontend hanya `VITE_CLOUDINARY_CLOUD_NAME` (publik). API key/secret **hanya di server** Laravel (`CLOUDINARY_URL=cloudinary://...@dwdaydzsh`). Jangan ekspos secret ke build.
+> **Catatan mock-mode:** karena repo ini belum punya backend Laravel, upload menghasilkan `public_id` lokal agar alur tersimpan & bisa di-render saat backend siap. Foto asli baru muncul (HTTP 200) setelah `VITE_API_URL` diisi + endpoint Laravel deploy (lihat `docs/ROADMAP.md` Fase 3).
 
 ### 4.4 Mapping dari clone saat ini
 

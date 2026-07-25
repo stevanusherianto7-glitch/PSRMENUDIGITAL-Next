@@ -76,3 +76,7 @@ scratch/
 # Root dev test scripts (legacy Supabase, bukan source app)
 test_insert.cjs
 test_bundle.cjs
+backend/vendor/
+backend/.env
+backend/node_modules/
+backend/storage/*.key

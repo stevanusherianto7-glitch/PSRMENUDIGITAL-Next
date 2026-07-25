@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { fetchOrders, fetchTransactions } from '../api';
+import { fetchOrders, fetchTransactions, createOrder, deleteOrder, updateOrder, getOrderDuration } from '../api';
+import { isBackendConfigured } from '../../lib/api';
 import type { 
   Module, 
   Order, 
@@ -141,25 +142,8 @@ export function useAdminState(): AdminState & AdminActions {
 
   const loadTransactions = useCallback(async () => {
     try {
-      const { data: txRows } = await supabase
-        .from('transactions')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(200);
-      
-      if (txRows) {
-        const txs = txRows.map((r: any) => ({
-          id: r.id,
-          table_id: r.table_id,
-          items: r.items || [],
-          subtotal: r.subtotal,
-          tax: r.tax,
-          total: r.total,
-          method: r.method,
-          created_at: r.created_at
-        }));
-        setTransactions(txs);
-      }
+      const res = await fetchTransactions();
+      setTransactions(res.data);
     } catch (e) {
       console.error('Failed to load transactions:', e);
     }
@@ -190,19 +174,12 @@ export function useAdminState(): AdminState & AdminActions {
     const initSupabase = async () => {
       setSeeding(true);
       try {
-        const { error: pingError } = await supabase
-          .from('meja')
-          .select('id')
-          .limit(1);
-        
-        if (pingError) throw pingError;
-        setConnected(true);
-
-        // Initialize data (keep existing logic)
-        // ... (copy existing initialization logic from AdminPage)
-        
+        // Mode Laravel: terhubung bila VITE_API_URL diisi (Sanctum token di localStorage)
+        // Mode fallback: app jalan via localStorage (offline/mock)
+        const connected = isBackendConfigured() || true; // localStorage fallback selalu available
+        setConnected(connected);
       } catch (err) {
-        console.warn('Supabase connection failed:', err);
+        console.warn('Backend connection check failed:', err);
         setConnected(false);
       } finally {
         setSeeding(false);

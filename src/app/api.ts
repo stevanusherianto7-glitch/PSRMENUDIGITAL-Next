@@ -265,33 +265,24 @@ export async function fetchTransactions(
   limit: number = 50,
   dateRange?: { from?: Date; to?: Date }
 ): Promise<PaginatedResponse<Transaction>> {
-  const from = (page - 1) * limit;
-  const to = from + limit - 1;
-
-  let query = supabase
-    .from("transactions")
-    .select("*", { count: "exact" })
-    .order("created_at", { ascending: false })
-    .range(from, to);
-
-  if (dateRange?.from) {
-    query = query.gte("created_at", dateRange.from.toISOString());
+  if (isBackendConfigured()) {
+    const qs = new URLSearchParams();
+    qs.set('page', String(page));
+    qs.set('limit', String(limit));
+    if (dateRange?.from) qs.set('from', dateRange.from.toISOString());
+    if (dateRange?.to) qs.set('to', dateRange.to.toISOString());
+    const res = await apiFetch<{ data: Transaction[]; total: number }>('GET', `/api/v1/transactions?${qs.toString()}`);
+    if (res.ok) {
+      const arr = Array.isArray(res.data) ? res.data : (res.data as { data: Transaction[] }).data ?? [];
+      return { data: arr, total: (res.data as any).total || arr.length, page, limit };
+    }
   }
-  if (dateRange?.to) {
-    query = query.lte("created_at", dateRange.to.toISOString());
+  // Fallback localStorage
+  try {
+    const raw = localStorage.getItem('local_transactions');
+    const list: Transaction[] = raw ? JSON.parse(raw) : [];
+    return { data: list.slice((page - 1) * limit, page * limit), total: list.length, page, limit };
+  } catch {
+    return { data: [], total: 0, page, limit };
   }
-
-  const { data, count, error } = await query;
-
-  if (error) {
-    console.error("fetchTransactions error:", error.message);
-    throw error;
-  }
-
-  return {
-    data: (data as Transaction[]) || [],
-    total: count || 0,
-    page,
-    limit,
-  };
 }

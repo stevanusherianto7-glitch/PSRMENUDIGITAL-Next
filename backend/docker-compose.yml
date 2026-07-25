@@ -1,0 +1,42 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: psr_backend
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+    ports:
+      - "8080:9000"
+    environment:
+      DB_HOST: db
+      REDIS_HOST: redis
+    depends_on:
+      - db
+      - redis
+    command: php artisan serve --host=0.0.0.0 --port=9000
+
+  db:
+    image: postgres:16
+    container_name: psr_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: psrmenudigital
+      POSTGRES_USER: psr_user
+      POSTGRES_PASSWORD: psr_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    container_name: psr_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+volumes:
+  pgdata:

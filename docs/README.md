@@ -19,7 +19,8 @@ brand Kedai Elvera 57). **Supabase tidak dipakai.**
 5. **`docs/TYPOGRAPHY.md`** — Sistem tipografi & warna brand Elvera (Poppins + palet ungu/magenta/oranye/emas), WCAG, spacing.
 6. **`PANDUAN_ROLE.md`** (root) — Cara mengubah role karyawan (RBAC). **PENTING:** role valid = `admin | manager | owner | waiter | kitchen`.
 7. **`docs/TESTING.md`** — Testing lokal repo ini (Jest + Playwright + Cypress, perintah nyata).
-8. **`guidelines/Guidelines.md`** (root) — Ringkasan panduan untuk AI (merujuk ke docs di atas).
+8. **`docs/CONTRIBUTING.md`** — Cara kontribusi, Conventional Commits, Definition of Done.
+9. **`guidelines/Guidelines.md`** (root) — Ringkasan panduan untuk AI (merujuk ke docs di atas).
 
 ---
 

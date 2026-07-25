@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { PhotoUploader } from "./PhotoUploader";
 import { EventPhotoUploader } from "./EventPhotoUploader";
+import { fetchEvents, saveEvent, deleteEvent } from "../../lib/repository/event";
 import { 
   Printer, Download, ExternalLink, QrCode, 
   Edit2, Trash2, Plus, Sparkles, Calendar, 
@@ -89,18 +90,11 @@ export function QrMenuModule({ tables }: QrMenuModuleProps) {
   const loadEventPhotos = useCallback(async () => {
     setLoadingPhotos(true);
     try {
-      const { data, error } = await supabase
-        .from("event_gallery")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-
+      const data = await fetchEvents();
       if (data && data.length > 0) {
         setEventPhotos(data);
         localStorage.setItem("local_event_gallery", JSON.stringify(data));
       } else {
-        // Table is empty, seed it with defaults
         setEventPhotos(DEFAULT_EVENT_PHOTOS);
       }
       return true;
@@ -111,9 +105,6 @@ export function QrMenuModule({ tables }: QrMenuModuleProps) {
         setEventPhotos(JSON.parse(saved));
       } else {
         setEventPhotos(DEFAULT_EVENT_PHOTOS);
-      }
-      if (err.code === "PGRST205") {
-        return false;
       }
       return true;
     } finally {
@@ -195,19 +186,10 @@ export function QrMenuModule({ tables }: QrMenuModuleProps) {
     try {
       if (editingPhoto) {
         // Edit existing
-        const { error } = await supabase
-          .from("event_gallery")
-          .update(payload)
-          .eq("id", editingPhoto.id);
-
-        if (error) throw error;
+        await saveEvent({ ...payload, id: editingPhoto.id });
       } else {
         // Create new
-        const { error } = await supabase
-          .from("event_gallery")
-          .insert([payload]);
-
-        if (error) throw error;
+        await saveEvent({ ...payload, id: "local-" + Date.now() });
       }
       
       await loadEventPhotos();
@@ -250,12 +232,8 @@ export function QrMenuModule({ tables }: QrMenuModuleProps) {
     };
 
     try {
-      const { error } = await supabase
-        .from("event_gallery")
-        .update({ title: tempTitle })
-        .eq("id", photo.id);
+      await saveEvent({ ...photo, title: tempTitle });
 
-      if (error) throw error;
       await loadEventPhotos();
       setEditingTitleId(null);
     } catch (err) {
@@ -274,12 +252,7 @@ export function QrMenuModule({ tables }: QrMenuModuleProps) {
     if (!window.confirm("Apakah Anda yakin ingin menghapus foto acara ini?")) return;
     
     try {
-      const { error } = await supabase
-        .from("event_gallery")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
+      await deleteEvent(id);
       await loadEventPhotos();
     } catch (err) {
       console.warn("Failed to delete from Supabase, removing locally:", err);

@@ -20,7 +20,11 @@ brand Kedai Elvera 57). **Supabase tidak dipakai.**
 6. **`PANDUAN_ROLE.md`** (root) — Cara mengubah role karyawan (RBAC). **PENTING:** role valid = `admin | manager | owner | waiter | kitchen`.
 7. **`docs/TESTING.md`** — Testing lokal repo ini (Jest + Playwright + Cypress, perintah nyata).
 8. **`docs/CONTRIBUTING.md`** — Cara kontribusi, Conventional Commits, Definition of Done.
-9. **`guidelines/Guidelines.md`** (root) — Ringkasan panduan untuk AI (merujuk ke docs di atas).
+9. **`docs/ENVIRONMENT.md`** — Ringkasan variabel env (frontend `VITE_*` + backend Laravel rahasia), mapping Supabase→Laravel.
+10. **`CHANGELOG.md`** (root) — Riwayat perubahan (SemVer + Conventional Commits).
+11. **`docs/ROADMAP.md`** — Peta jalan fitur & migrasi; indeks `docs/features/*`.
+12. **`docs/features/*.md`** — Spesifikasi + task plan per fitur (login, admin-pos, waiter-kitchen, guest-menu, qr-sticker).
+13. **`guidelines/Guidelines.md`** (root) — Ringkasan panduan untuk AI (merujuk ke docs di atas).
 
 ---
 

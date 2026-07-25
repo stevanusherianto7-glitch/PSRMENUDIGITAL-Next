@@ -77,7 +77,7 @@ npm test                      # Unit test Jest (sekali jalan)
 npm run test:watch            # Jest watch mode
 npm run test:coverage         # Jest + laporan coverage
 npm run test:integration      # Integrasi (LoginFlow) — Jest
-npm run test:e2e:playwright   # E2E Playwright (port strict, desktop 1280x800)
+npm run test:e2e:playwright   # E2E Playwright (localhost:5173, desktop 1280x720)
 npm run test:e2e:cypress      # E2E Cypress
 npm run lint                  # ESLint src
 npm run format                # ESLint --fix
@@ -113,8 +113,8 @@ Lihat `docs/TYPOGRAPHY.md` untuk detail. Ringkas:
   - `.env` sudah di-gitignore — jangan commit.
   - API token (Sanctum/Bearer) disimpan di storage aman (Capacitor SecureStorage / httpOnly cookie), bukan di JS global.
   - **Secret backend (DB password, APP_KEY, API key pihak ke-3) HARUS tetap di server** — jangan pernah ekspos ke frontend/build.
-  - Test spec (`.spec.ts`/`.cy.ts`) **jangan hardcode** URL production atau key — gunakan env dinamis (`VITE_API_URL` fallback ke `http://localhost:8080` / `127.0.0.1:54321` local).
-- **HTTPS everywhere** di production (Vercel/Android).
+  - Test spec (`.spec.ts`/`.cy.ts`) **jangan hardcode** URL production atau key — gunakan env dinamis (`VITE_API_URL` fallback ke `http://localhost:8080` / `127.0.0.1:5432` local).
+- **HTTPS everywhere** di production (VPS/Android).
 
 ---
 

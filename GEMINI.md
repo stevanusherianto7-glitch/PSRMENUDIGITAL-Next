@@ -6,9 +6,9 @@ Kamu adalah Senior Full-Stack Software Engineer & System Architect.
 Fokus utamamu adalah membangun sistem yang Robust (Tahan Banting), Scalable (Mudah Dikembangkan), dan memiliki Estetika Premium untuk operasional bisnis kuliner terpadu.
 
 🏗️ Konteks Arsitektur Proyek
-Stack Utama: Capacitor (Android), React (Frontend), Laravel 13 + PostgreSQL + Redis (Backend & Database), Vercel (Web Deployment), GitHub Actions (CI Pipeline).
+Stack Utama: Capacitor (Android), React (Frontend), Laravel 13 + PostgreSQL + Redis (Backend & Database), VPS (Web Deployment — nginx), GitHub Actions (CI Pipeline).
 
-Struktur: Monorepo dengan Product Flavors (Guest, Waiter, Kitchen, Admin/POS) untuk mengelola alur pemesanan dinamis (seperti manajemen Meja A1-A9) pada Kedai Elvera 57 Resto dan Kedai Elvera 57. Frontend berkomunikasi dengan backend via RESTful JSON API (`VITE_API_URL`).
+Struktur: Single-app (React SPA) dengan role-based access (admin/manager/owner/waiter/kitchen) — terbukti dari `src/app/routes.tsx` (satu router, redirect per role, BUKAN Product Flavors terpisah). Mengelola alur pemesanan dinamis (manajemen Meja A1-A9) untuk Kedai Elvera 57 Resto. Frontend berkomunikasi dengan backend via RESTful JSON API (`VITE_API_URL`).
 
 Data Source: Backend Laravel/PostgreSQL (Single Source of Truth) menggunakan penamaan snake_case.
 
@@ -72,7 +72,7 @@ Selalu patuhi skema database yang sudah dinormalisasi (FK ID, UUID).
 
 Pastikan isolasi multi-tenant & otorisasi dienforced di backend (Laravel policies / tenant scope) dan injeksi environment variables (.env) dipertimbangkan dalam setiap fitur.
 
-Proteksi Database Produksi: Perubahan di database (termasuk seeding atau cleanup di file test cases seperti admin.spec.ts atau staff.spec.ts) tidak boleh menyentuh URL production. Selalu gunakan URL dinamis (`VITE_API_URL`) untuk fallback ke `http://localhost:8080` (Local API) / `127.0.0.1:54321` (Local DB) via env. **Secret backend (DB password, APP_KEY) tidak boleh diekspos ke frontend/build.**
+Proteksi Database Produksi: Perubahan di database (termasuk seeding atau cleanup di file test cases seperti admin.spec.ts atau staff.spec.ts) tidak boleh menyentuh URL production. Selalu gunakan URL dinamis (`VITE_API_URL`) untuk fallback ke `http://localhost:8080` (Local API Laravel) / `127.0.0.1:5432` (Local PostgreSQL) via env. **Secret backend (DB password, APP_KEY) tidak boleh diekspos ke frontend/build.**
 
 6. Skenario Rollback & Pemulihan (Rollback Plan)
 Setiap kali melakukan refactor, pembaruan pipeline GitHub Actions, atau perbaikan kode kritikal:
@@ -92,7 +92,7 @@ Untuk Jest integration: npm run test:integration
 
 Untuk Playwright: npm run test:e2e:playwright (jalankan dengan dotenv untuk memuat variabel lokal; manfaatkan Trace & Screenshot Artifacts untuk melacak UI layout shifts atau elemen stuck).
 
-Untuk Cypress: npm run test:e2e:cypress (pastikan berjalan menggunakan port paling strict yaitu 5656 dan viewport desktop 1280x800).
+Untuk Cypress: npm run test:e2e:cypress (berjalan di `http://localhost:5173`, viewport desktop 1280x720 — lihat `cypress.config.ts`).
 
 8. Type Safety & Naming Convention (Wajib — seragam dengan docs/GOLDEN-RULES.md)
 - **Dilarang `any`** di kode baru (`src/`): gunakan interface/type alias/generics/`unknown`+validasi. ESLint `@typescript-eslint/no-explicit-any: "error"`.

@@ -47,7 +47,7 @@ brand Kedai Elvera 57). **Supabase tidak dipakai.**
 - **Backend (target):** Laravel 13 (PHP) + PostgreSQL + Redis (seragam Restoku-Next). **Supabase TIDAK dipakai.**
 - **Catatan migrasi:** clone saat ini masih menyimpan wiring Supabase di `src/lib/supabase.ts` & folder `supabase/`; akan diganti pemanggilan REST API Laravel via `VITE_API_URL`.
 - **Testing:** Jest (unit/integration) + Playwright + Cypress (E2E)
-- **Deploy:** Vercel (web), Android build via Capacitor
+- **Deploy:** VPS (nginx + Laravel + PostgreSQL + Redis), Android build via Capacitor.
 
 ---
 

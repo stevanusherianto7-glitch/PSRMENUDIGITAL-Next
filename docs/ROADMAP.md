@@ -34,11 +34,18 @@
 
 ## Fase 3 — Frontend ke Laravel
 
-- [ ] Ganti `src/lib/supabase.ts` → HTTP client `VITE_API_URL`.
-- [ ] Helper `menuImageUrl` (Cloudinary) di komponen menu.
+> **Update 2026-07-25**: sebagian besar persiapan frontend SUDAH dikerjakan di repo ini
+> (helper `menuImageUrl`, `MenuPhotoUploader`/`EventPhotoUploader`, stub backend).
+> Sisa: ganti client Supabase → HTTP Laravel, CRUD list via REST, cabut `@supabase/supabase-js`.
+
+- [x] Helper `menuImageUrl` (Cloudinary) di komponen menu (MenuManagement, GuestMenuPage, KasirModule).
+- [x] Upload foto menu/event via `uploadMenuPhoto`/`uploadEventPhoto` (mock + real-mode, stub Node bukti).
+- [x] Ekstrak `OptimizedImage` + `MenuCard` dari god-component (refactor tahap 1).
+- [ ] Ganti `src/lib/supabase.ts` → HTTP client `VITE_API_URL` (token Sanctum).
+- [ ] CRUD list (menu/event/order/meja) via REST Laravel — ganti `supabase.from(...)` di `QrMenuModule`/`GuestMenuPage`/`AdminPage`.
 - [ ] Token Sanctum di storage aman (Capacitor SecureStorage / httpOnly cookie).
 - [ ] Cabut `@supabase/supabase-js`.
-- [ ] E2E jalan dengan `VITE_USE_MOCKS=false` melawan Laravel.
+- [ ] E2E jalan dengan `VITE_USE_MOCKS=false` melawan Laravel (atau stub).
 
 ## Fase 4 — Deployment VPS
 

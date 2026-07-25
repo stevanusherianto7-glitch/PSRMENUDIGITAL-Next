@@ -209,6 +209,28 @@ MenuPhotoUploader ──► uploadMenuPhoto()
 | `item.image` = URL Supabase Storage (`...supabase.co/storage/...`) | `item.image` = **Cloudinary public_id** (`Ayam_Goreng_..._qsbpul`) |
 | Fetch via `supabase.storage().from('menu').getPublicUrl()` | `menuImageUrl(public_id)` (build URL Cloudinary) |
 | Folder `src/app/pages/GuestMenuPage.tsx` render `<img src={item.image}>` | ganti ke `menuImageUrl(item.image)` |
+| `PhotoUploader` (Supabase) di `MenuItemModal` | `MenuPhotoUploader` (`uploadMenuPhoto`) |
+| `PhotoUploader` (Supabase) di `QrMenuModule` (event) | `EventPhotoUploader` (`uploadEventPhoto`) |
+
+### 4.5 Stub Backend untuk Dev (bukti real-mode tanpa Laravel)
+
+Repo ini frontend-only. Untuk menguji real-mode (`VITE_API_URL` diisi) sebelum
+Laravel siap, ada **stub Node** yang mensimulasikan endpoint Laravel:
+
+| Stub | Endpoint | Dipakai oleh |
+|------|----------|--------------|
+| `server/menuUploadStub.js` | `POST /api/menu/upload` → `{public_id,url}` | `uploadMenuPhoto` (foto menu) |
+| `server/eventGalleryStub.js` | `POST /api/event-gallery/photo` → `{public_id,url}` | `uploadEventPhoto` (foto event) |
+
+Jalankan: `node server/menuUploadStub.js` (port 8099) / `node server/eventGalleryStub.js` (port 8098).
+Lalu set `.env`: `VITE_API_URL=http://localhost:8099`.
+
+Bukti real-mode (integration test membuka network ke stub):
+- `src/__tests__/integration/menuUpload.realmode.test.ts` ✅ PASS
+- `src/__tests__/integration/eventGallery.realmode.test.ts` ✅ PASS
+
+> Stub BUKAN Laravel. Di produksi, endpoint diganti controller Laravel yang memanggil
+> Cloudinary SDK server-side (CLOUDINARY_URL di .env server). Kontrak response sama.
 
 ---
 

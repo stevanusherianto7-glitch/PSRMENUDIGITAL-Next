@@ -29,6 +29,11 @@ export interface ApiResult<T = unknown> {
   data: T
 }
 
+/** Kembalikan base URL Laravel (kosong bila tidak terkonfigurasi). */
+export function getApiBase(): string {
+  return apiBaseUrl()
+}
+
 /** Kembalikan true bila backend Laravel terkonfigurasi (VITE_API_URL diisi). */
 export function isBackendConfigured(): boolean {
   return apiBaseUrl().length > 0

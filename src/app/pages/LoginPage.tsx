@@ -9,6 +9,8 @@ import { ChefHat, Eye, EyeOff, Lock, ArrowRight, UtensilsCrossed, ShoppingBag, S
 
 // Menggunakan string path untuk logo agar tidak error di Vite
 import { CREDENTIALS, BRAND_NAME, APP_LOGO as logoImg } from "../data";
+import { supabase } from "../../lib/supabase";
+import { isBackendConfigured, getApiBase } from "../../lib/api";
 import type { UserRole, UserSession } from "../types";
 
 export default function LoginPage() {
@@ -47,6 +49,14 @@ export default function LoginPage() {
     else navigate("/waiter");
     
     setLoading(false);
+  }
+
+  // Redirect ke Google OAuth (Socialite) di backend Laravel.
+  // Backend akan callback lalu redirect balik ke /admin?token=...
+  function handleGoogleLogin() {
+    const base = getApiBase();
+    const redirect = encodeURIComponent(window.location.origin + '/admin');
+    window.location.href = `${base}/api/v1/auth/google?redirect=${redirect}`;
   }
 
   return (
@@ -189,6 +199,22 @@ export default function LoginPage() {
               )}
             </button>
           </form>
+
+          {isBackendConfigured() && (
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              className="w-full mt-4 py-3.5 rounded-lg font-semibold text-sm border border-border bg-white/5 hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+            >
+              <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden>
+                <path fill="#EA4335" d="M24 9.5c3.54 0 6.7 1.22 9.2 3.62l6.86-6.86C35.9 2.43 30.4 0 24 0 14.6 0 6.46 5.4 2.62 13.2l7.98 6.2C12.36 13.66 17.74 9.5 24 9.5z"/>
+                <path fill="#4285F4" d="M46.1 24.5c0-1.57-.14-3.08-.4-4.54H24v9.02h12.4c-.54 2.9-2.18 5.36-4.66 7.02l7.2 5.6C43.7 37.3 46.1 31.3 46.1 24.5z"/>
+                <path fill="#FBBC05" d="M10.6 28.42c-.48-1.44-.76-2.97-.76-4.56s.28-3.12.76-4.56l-7.98-6.2C.9 16.4 0 20.1 0 24s.9 7.6 2.62 10.9l7.98-6.48z"/>
+                <path fill="#34A853" d="M24 48c6.4 0 11.9-2.13 15.86-5.78l-7.2-5.6c-2 1.34-4.58 2.14-8.66 2.14-6.26 0-11.64-4.16-13.4-9.78l-7.98 6.48C6.46 42.6 14.6 48 24 48z"/>
+              </svg>
+              Masuk dengan Google
+            </button>
+          )}
 
           <div className="mt-10 pt-6 border-t border-border text-center">
             <p className="eyebrow mb-3">Untuk Tamu</p>

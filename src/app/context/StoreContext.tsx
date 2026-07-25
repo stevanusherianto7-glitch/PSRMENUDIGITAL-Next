@@ -6,7 +6,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import type { Order, MenuItem } from "../types";
 import { fetchOrders } from "../api";
-import { supabase } from "../../lib/supabase";
+import { fetchMenu } from "../../lib/repository/menu";
 import { SEED_MENU } from "../data";
 
 interface StoreContextType {
@@ -44,7 +44,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const refreshMenu = useCallback(async () => {
     setLoadingMenu(true);
     try {
-      const { data } = await supabase.from("menu_items").select("*");
+      const data = await fetchMenu();
       if (data && data.length > 0) {
         const dbById = new Map(data.map((r: any) => [r.id, r]));
         const merged: MenuItem[] = SEED_MENU.map(seed => {
@@ -81,26 +81,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Initial load
+  // Initial load + polling (realtime Supabase dicabut -> poll 30s)
   useEffect(() => {
     refreshOrders();
     refreshMenu();
 
-    // Setup real-time for orders
-    const channel = supabase
-      .channel("any-orders-changes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "orders" },
-        () => {
-          refreshOrders();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const interval = setInterval(() => {
+      refreshOrders();
+      refreshMenu();
+    }, 30000);
+    return () => clearInterval(interval);
   }, [refreshOrders, refreshMenu]);
 
   return (

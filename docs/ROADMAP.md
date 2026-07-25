@@ -41,13 +41,16 @@
 - [x] Helper `menuImageUrl` (Cloudinary) di komponen menu (MenuManagement, GuestMenuPage, KasirModule).
 - [x] Upload foto menu/event via `uploadMenuPhoto`/`uploadEventPhoto` (mock + real-mode, stub Node bukti).
 - [x] Ekstrak `OptimizedImage` + `MenuCard` dari god-component (refactor tahap 1).
-- [x] `src/lib/api.ts` (HTTP client Laravel) + `src/lib/repository/{menu,event,order}.ts` (data-layer, fallback localStorage).
-- [x] `QrMenuModule` event CRUD → `repository/event.ts` (ganti `supabase.from('event_gallery')`).
-- [ ] `MenuManagement` / `GuestMenuPage` menu CRUD → `repository/menu.ts`.
-- [ ] `GuestMenuPage` / `OrdersModule` order submit → `repository/order.ts`.
-- [ ] `StoreContext` / `useAdminState` (admin POS meja/transactions) → HTTP Laravel + cabut realtime Supabase.
+- [x] `StoreContext` (menu + order) → HTTP Laravel (poll 30s, hapus realtime Supabase).
+- [x] `useAdminState` (admin POS) → `fetchTransactions` HTTP.
+- [x] `GuestMenuPage` menu + order → repository/HTTP.
+- [x] `QrMenuModule` event → repository/HTTP.
+- [x] Tombol "Masuk dengan Google" di `LoginPage` → `/api/v1/auth/google`.
+- [x] `fetchPaginatedOrders` → HTTP Laravel.
+- [ ] `PhotoUploader` (bucket Supabase) → `menuUpload.ts` proxy Laravel.
+- [ ] 18 file sisanya yang masih `import supabase` → migrasi per-module (Karyawan, JadwalShift, KalkulatorHPP, Asset, Dashboard, useSupabaseStatus, test).
+- [ ] Hapus `src/lib/supabase.ts` setelah seluruh impor dicabut.
 - [ ] Token Sanctum di storage aman (Capacitor SecureStorage / httpOnly cookie).
-- [ ] Cabut `@supabase/supabase-js` (hapus `src/lib/supabase.ts` + `info.ts(x)`).
 - [ ] E2E jalan dengan `VITE_USE_MOCKS=false` melawan Laravel (atau stub).
 
 ## Fase 4 — Deployment VPS

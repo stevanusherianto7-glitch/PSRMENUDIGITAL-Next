@@ -18,7 +18,8 @@ brand Kedai Elvera 57). **Supabase tidak dipakai.**
 4. **`docs/DEPLOYMENT.md`** — Deployment VPS (Laravel+Postgres+Redis, nginx, Supervisor) + env Cloudinary + build Vite/Capacitor.
 5. **`docs/TYPOGRAPHY.md`** — Sistem tipografi & warna brand Elvera (Poppins + palet ungu/magenta/oranye/emas), WCAG, spacing.
 6. **`PANDUAN_ROLE.md`** (root) — Cara mengubah role karyawan (RBAC). **PENTING:** role valid = `admin | manager | owner | waiter | kitchen`.
-7. **`guidelines/Guidelines.md`** (root) — Ringkasan panduan untuk AI (merujuk ke docs di atas).
+7. **`docs/TESTING.md`** — Testing lokal repo ini (Jest + Playwright + Cypress, perintah nyata).
+8. **`guidelines/Guidelines.md`** (root) — Ringkasan panduan untuk AI (merujuk ke docs di atas).
 
 ---
 

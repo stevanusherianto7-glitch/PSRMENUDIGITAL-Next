@@ -14,9 +14,10 @@ brand Kedai Elvera 57). **Supabase tidak dipakai.**
 
 1. **`GEMINI.md`** (root) — System prompt / peran AI saat mengerjakan repo ini.
 2. **`docs/GOLDEN-RULES.md`** — Aturan emas: no `any`, naming, arsitektur, testing, a11y, security, robustness, brand, Definition of Done.
-3. **`docs/TYPOGRAPHY.md`** — Sistem tipografi & warna brand Elvera (Poppins + palet ungu/magenta/oranye/emas), WCAG, spacing.
-4. **`PANDUAN_ROLE.md`** (root) — Cara mengubah role karyawan (RBAC). **PENTING:** role valid = `admin | manager | owner | waiter | kitchen`.
-5. **`guidelines/Guidelines.md`** (root) — Ringkasan panduan untuk AI (merujuk ke docs di atas).
+3. **`docs/ARCHITECTURE.md`** — Peta transisi Supabase → Laravel (endpoint API, mapping tabel, auth Sanctum) + integrasi Cloudinary foto menu.
+4. **`docs/TYPOGRAPHY.md`** — Sistem tipografi & warna brand Elvera (Poppins + palet ungu/magenta/oranye/emas), WCAG, spacing.
+5. **`PANDUAN_ROLE.md`** (root) — Cara mengubah role karyawan (RBAC). **PENTING:** role valid = `admin | manager | owner | waiter | kitchen`.
+6. **`guidelines/Guidelines.md`** (root) — Ringkasan panduan untuk AI (merujuk ke docs di atas).
 
 ---
 

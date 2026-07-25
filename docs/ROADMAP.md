@@ -41,10 +41,13 @@
 - [x] Helper `menuImageUrl` (Cloudinary) di komponen menu (MenuManagement, GuestMenuPage, KasirModule).
 - [x] Upload foto menu/event via `uploadMenuPhoto`/`uploadEventPhoto` (mock + real-mode, stub Node bukti).
 - [x] Ekstrak `OptimizedImage` + `MenuCard` dari god-component (refactor tahap 1).
-- [ ] Ganti `src/lib/supabase.ts` → HTTP client `VITE_API_URL` (token Sanctum).
-- [ ] CRUD list (menu/event/order/meja) via REST Laravel — ganti `supabase.from(...)` di `QrMenuModule`/`GuestMenuPage`/`AdminPage`.
+- [x] `src/lib/api.ts` (HTTP client Laravel) + `src/lib/repository/{menu,event,order}.ts` (data-layer, fallback localStorage).
+- [x] `QrMenuModule` event CRUD → `repository/event.ts` (ganti `supabase.from('event_gallery')`).
+- [ ] `MenuManagement` / `GuestMenuPage` menu CRUD → `repository/menu.ts`.
+- [ ] `GuestMenuPage` / `OrdersModule` order submit → `repository/order.ts`.
+- [ ] `StoreContext` / `useAdminState` (admin POS meja/transactions) → HTTP Laravel + cabut realtime Supabase.
 - [ ] Token Sanctum di storage aman (Capacitor SecureStorage / httpOnly cookie).
-- [ ] Cabut `@supabase/supabase-js`.
+- [ ] Cabut `@supabase/supabase-js` (hapus `src/lib/supabase.ts` + `info.ts(x)`).
 - [ ] E2E jalan dengan `VITE_USE_MOCKS=false` melawan Laravel (atau stub).
 
 ## Fase 4 — Deployment VPS

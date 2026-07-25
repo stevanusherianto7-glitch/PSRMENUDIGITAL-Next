@@ -212,27 +212,31 @@ MenuPhotoUploader ──► uploadMenuPhoto()
 | `PhotoUploader` (Supabase) di `MenuItemModal` | `MenuPhotoUploader` (`uploadMenuPhoto`) |
 | `PhotoUploader` (Supabase) di `QrMenuModule` (event) | `EventPhotoUploader` (`uploadEventPhoto`) |
 
-### 4.5 Stub Backend untuk Dev (bukti real-mode tanpa Laravel)
+### 4.6 Data-Layer Repository (pengganti Supabase client)
 
-Repo ini frontend-only. Untuk menguji real-mode (`VITE_API_URL` diisi) sebelum
-Laravel siap, ada **stub Node** yang mensimulasikan endpoint Laravel:
+Untuk migrasi ke Laravel tanpa break app, dibuat lapisan `src/lib/repository/*`
+sebagai data-layer ter-abstraksi. App memanggil repository, bukan `supabase` langsung.
 
-| Stub | Endpoint | Dipakai oleh |
-|------|----------|--------------|
-| `server/menuUploadStub.js` | `POST /api/menu/upload` → `{public_id,url}` | `uploadMenuPhoto` (foto menu) |
-| `server/eventGalleryStub.js` | `POST /api/event-gallery/photo` → `{public_id,url}` | `uploadEventPhoto` (foto event) |
+| Repository | Endpoint Laravel | Fallback (VITE_API_URL kosong) |
+|------------|------------------|-------------------------------|
+| `repository/menu.ts` | `/api/v1/menus` (GET/POST/PUT/DELETE + `/sync`) | `localStorage['local_menu_items']` |
+| `repository/event.ts` | `/api/v1/event-gallery` (GET/POST/DELETE) | `localStorage['local_event_gallery']` |
+| `repository/order.ts` | `/api/v1/orders` (GET/POST) | `localStorage['local_orders']` |
 
-Jalankan: `node server/menuUploadStub.js` (port 8099) / `node server/eventGalleryStub.js` (port 8098).
-Lalu set `.env`: `VITE_API_URL=http://localhost:8099`.
+`src/lib/api.ts` = HTTP client (`apiFetch`) yang baca `VITE_API_URL` + token Sanctum
+dari `localStorage['sanctum_token']`. `isBackendConfigured()` → true bila `VITE_API_URL` diisi.
 
-Bukti real-mode (integration test membuka network ke stub):
-- `src/__tests__/integration/menuUpload.realmode.test.ts` ✅ PASS
-- `src/__tests__/integration/eventGallery.realmode.test.ts` ✅ PASS
+**Status wiring (2026-07-25):**
+- ✅ `QrMenuModule` (event gallery CRUD) → `repository/event.ts` (ganti `supabase.from('event_gallery')`).
+- ⏳ `MenuManagement` / `GuestMenuPage` (menu) → `repository/menu.ts` (belum di-wire).
+- ⏳ `GuestMenuPage` / `OrdersModule` (order) → `repository/order.ts` (belum di-wire).
+- ⏳ `StoreContext` / `useAdminState` (admin POS meja/transactions) → tahap berikutnya.
 
-> Stub BUKAN Laravel. Di produksi, endpoint diganti controller Laravel yang memanggil
-> Cloudinary SDK server-side (CLOUDINARY_URL di .env server). Kontrak response sama.
+Bukti real-mode (integration test buka network ke `server/restStub.js`):
+`src/__tests__/integration/repository.realmode.test.ts` ✅ PASS (create→fetch→delete menu/event/order).
 
----
+> `src/lib/supabase.ts` **dibiarkan** (legacy) sampai seluruh modul di-wire ke repository.
+> Jangan hapus sebelum Fase 3 penuh selesai — app masih bergantung padanya untuk admin POS.
 
 ## 5. Realtime (Opsional)
 

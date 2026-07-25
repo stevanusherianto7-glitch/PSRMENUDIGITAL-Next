@@ -1,0 +1,824 @@
+/** 
+ * ⚠️ DILARANG KERAS UNTUK MENGUBAH ATAU MEMODIFIKASI FILE INI TANPA IZIN SENIOR ARCHITECT.
+ * FILE INI BERISI DASHBOARD ANALITIK DAN VISUALISASI DATA (RECHARTS) Kedai Elvera 57.
+ * KESALAHAN MODIFIKASI DAPAT MENYEBABKAN LAPORAN KEUANGAN TIDAK AKURAT. ⚠️
+ */
+import React, { useState, useEffect } from "react";
+import { 
+  Bell, Database, ArrowUpRight, ArrowDownRight, PieChart as PieIcon, BarChart as BarIcon, 
+  Download, Clock, Sparkles, Trash2, Play, ChevronDown, ChevronUp, RefreshCw, 
+  Banknote, Smartphone, CreditCard, Wallet, Info, CheckCircle2 
+} from "lucide-react";
+import { supabase } from "../../lib/supabase";
+import { rp } from "../data";
+import type { Transaction, Order } from "../types";
+import { toast } from "sonner";
+import confetti from "canvas-confetti";
+import { 
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, BarChart, Bar, Legend
+} from "recharts";
+
+// ─── Chart Colors ─────────────────────────────────────────────────────────────
+const COLORS = ['#6366F1', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+
+// ─── Chart helpers ─────────────────────────────────────────────────────────────
+function HourlySalesChart({ data }: { data: { hour: string; sales: number }[] }) {
+  const isEmpty = !data || data.every(h => h.sales === 0);
+  const displayData = isEmpty
+    ? Array.from({ length: 24 }, (_, i) => ({
+        hour: i.toString().padStart(2, "0") + ":00",
+        sales: 0
+      }))
+    : data;
+
+  return (
+    <div className="w-full h-[180px] relative select-none">
+      <ResponsiveContainer>
+        <AreaChart
+          data={displayData}
+          margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
+        >
+          <defs>
+            <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={isEmpty ? "#94A3B8" : "#6366F1"} stopOpacity={isEmpty ? 0.15 : 0.8}/>
+              <stop offset="95%" stopColor={isEmpty ? "#94A3B8" : "#6366F1"} stopOpacity={isEmpty ? 0.01 : 0.1}/>
+            </linearGradient>
+            <filter id="shadow" height="200%">
+              <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="blur" />
+              <feOffset in="blur" dx="2" dy="4" result="offsetBlur" />
+              <feMerge>
+                <feMergeNode />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <XAxis dataKey="hour" stroke="#4B5563" fontSize={10} tickLine={false} axisLine={false} opacity={isEmpty ? 0.4 : 1} />
+          <YAxis stroke="#4B5563" fontSize={10} tickFormatter={(v) => `Rp${v/1000}k`} tickLine={false} axisLine={false} width={40} opacity={isEmpty ? 0.4 : 1} />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+          {!isEmpty && (
+            <Tooltip 
+              contentStyle={{ backgroundColor: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '10px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}
+              labelStyle={{ color: '#fff', fontWeight: 'bold' }}
+              itemStyle={{ color: '#6366F1' }}
+              formatter={(value: any) => [rp(value), "Penjualan"]}
+            />
+          )}
+          <Area
+            type="monotone"
+            dataKey="sales"
+            stroke={isEmpty ? "rgba(148, 163, 184, 0.3)" : "#6366F1"}
+            strokeDasharray={isEmpty ? "4 4" : "0"}
+            strokeWidth={isEmpty ? 2 : 4}
+            fillOpacity={1}
+            fill="url(#colorSales)"
+            filter={isEmpty ? undefined : "url(#shadow)"}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+      
+      {isEmpty && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/[0.03] dark:bg-white/[0.01] backdrop-blur-[1px] rounded-lg">
+          <div className="bg-white/80 dark:bg-card/90 border border-black/5 dark:border-border/80 rounded-xl px-4 py-3 shadow-lg flex flex-col items-center gap-1.5 animate-fade-in text-center max-w-[280px]">
+            <Clock size={18} className="text-indigo-500/80 dark:text-indigo-400/80 animate-pulse" />
+            <h4 className="text-[11px] font-black tracking-wider text-foreground uppercase">Belum Ada Transaksi</h4>
+            <p className="text-[9px] text-muted-foreground leading-normal">
+              Data transaksi hari ini masih kosong. Grafik akan terisi secara otomatis dan real-time ketika pesanan diselesaikan.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CategoryPieChart({ data }: { data: { name: string; value: number }[] }) {
+  const isEmpty = !data || data.length === 0 || data.every(c => c.value === 0);
+  const displayData = isEmpty ? [{ name: "Belum Ada Data", value: 1 }] : data;
+
+  return (
+    <div className="w-full h-[180px] relative select-none">
+      <ResponsiveContainer>
+        <PieChart>
+          <defs>
+            <filter id="pieShadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+              <feOffset dx="2" dy="4" result="offsetblur" />
+              <feComponentTransfer>
+                <feFuncA type="linear" slope="0.5" />
+              </feComponentTransfer>
+              <feMerge>
+                <feMergeNode />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <Pie
+            data={displayData}
+            cx="50%"
+            cy={isEmpty ? "50%" : "45%"}
+            innerRadius={45}
+            outerRadius={70}
+            paddingAngle={isEmpty ? 0 : 5}
+            dataKey="value"
+            stroke={isEmpty ? "rgba(148, 163, 184, 0.3)" : "none"}
+            filter={isEmpty ? undefined : "url(#pieShadow)"}
+          >
+            {displayData.map((_, index) => (
+              <Cell 
+                key={`cell-${index}`} 
+                fill={isEmpty ? "rgba(148, 163, 184, 0.1)" : COLORS[index % COLORS.length]} 
+              />
+            ))}
+          </Pie>
+          {!isEmpty && (
+            <Tooltip 
+              contentStyle={{ backgroundColor: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '10px' }}
+              itemStyle={{ fontSize: '10px' }}
+            />
+          )}
+          {!isEmpty && <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', paddingTop: '5px' }} />}
+        </PieChart>
+      </ResponsiveContainer>
+      
+      {isEmpty && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/[0.03] dark:bg-white/[0.01] backdrop-blur-[1px] rounded-lg">
+          <div className="bg-white/80 dark:bg-card/90 border border-black/5 dark:border-border/80 rounded-xl px-4 py-3 shadow-lg flex flex-col items-center gap-1.5 animate-fade-in text-center max-w-[240px]">
+            <PieIcon size={18} className="text-emerald-500/80 dark:text-emerald-400/80 animate-pulse" />
+            <h4 className="text-[11px] font-black tracking-wider text-foreground uppercase">Menu Kosong</h4>
+            <p className="text-[9px] text-muted-foreground leading-normal">
+              Komposisi menu terlaris hari ini akan muncul setelah transaksi penjualan diproses.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PeakHoursBarChart({ data }: { data: { hour: string; count: number }[] }) {
+  const isEmpty = !data || data.length === 0 || data.every(h => h.count === 0);
+  const displayData = isEmpty
+    ? data.map(h => ({ hour: h.hour, count: 0 }))
+    : data;
+
+  return (
+    <div className="w-full h-[180px] relative select-none">
+      <ResponsiveContainer>
+        <BarChart data={displayData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+          <defs>
+            <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#F59E0B" />
+              <stop offset="100%" stopColor="#D97706" />
+            </linearGradient>
+            <linearGradient id="barGradientEmpty" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#94A3B8" stopOpacity={0.2} />
+              <stop offset="100%" stopColor="#94A3B8" stopOpacity={0.03} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+          <XAxis dataKey="hour" stroke="#4B5563" fontSize={10} tickLine={false} axisLine={false} opacity={isEmpty ? 0.4 : 1} />
+          <YAxis stroke="#4B5563" fontSize={10} tickLine={false} axisLine={false} width={40} opacity={isEmpty ? 0.4 : 1} />
+          {!isEmpty && (
+            <Tooltip 
+              contentStyle={{ backgroundColor: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '10px' }}
+            />
+          )}
+          <Bar dataKey="count" fill={isEmpty ? "url(#barGradientEmpty)" : "url(#barGradient)"} radius={[6, 6, 0, 0]} barSize={20} />
+        </BarChart>
+      </ResponsiveContainer>
+      
+      {isEmpty && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/[0.03] dark:bg-white/[0.01] backdrop-blur-[1px] rounded-lg">
+          <div className="bg-white/80 dark:bg-card/90 border border-black/5 dark:border-border/80 rounded-xl px-4 py-3 shadow-lg flex flex-col items-center gap-1.5 animate-fade-in text-center max-w-[240px]">
+            <Clock size={18} className="text-amber-500/80 dark:text-amber-400/80 animate-pulse" />
+            <h4 className="text-[11px] font-black tracking-wider text-foreground uppercase">Jam Sepi</h4>
+            <p className="text-[9px] text-muted-foreground leading-normal">
+              Visualisasi jam-jam ramai pelanggan akan dipetakan otomatis begitu transaksi masuk.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MetricCard({ label, value, sub, trend, trendUp, accent, loading }: {
+  label: string; value: string; sub?: string; trend?: string; trendUp?: boolean; accent?: string; loading?: boolean;
+}) {
+  return (
+    <div className="bg-card border border-border/60 rounded-xl p-4 flex flex-col gap-2 transition-all duration-300 hover:shadow-md hover:border-indigo-500/20 group">
+      <p className="text-muted-foreground text-[9px] font-black uppercase tracking-[0.15em] mb-0.5">{label}</p>
+      {loading ? (
+        <div className="h-5 bg-secondary animate-pulse rounded-md w-3/4"></div>
+      ) : (
+        <p className={`font-black leading-tight font-['Poppins'] text-lg truncate ${accent || "text-[#E8EAF0]"}`} title={value}>{value}</p>
+      )}
+      <div className="flex items-center gap-1.5 mt-auto">
+        {loading ? (
+          <div className="h-3 bg-secondary animate-pulse rounded-md w-1/2"></div>
+        ) : (
+          <>
+            {trend && (
+              <span className={`flex items-center gap-0.5 text-[10px] font-bold ${trendUp ? "text-green-500" : "text-red-500"}`}>
+                {trendUp ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}{trend}
+              </span>
+            )}
+            {sub && <span className="text-muted-foreground text-[10px] font-semibold truncate">{sub}</span>}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const getFormattedDateNoYear = () => {
+  const d = new Date();
+  const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+  const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+  return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]}`;
+};
+
+interface DashboardModuleProps {
+  transactions: Transaction[];
+  liveOrders: Order[];
+  connected: boolean;
+  onTransaction?: (tx: Transaction) => Promise<void>;
+}
+
+const isSameLocalDay = (dateStr: string, targetDate: Date = new Date()) => {
+  try {
+    const d = new Date(dateStr);
+    return d.getFullYear() === targetDate.getFullYear() &&
+           d.getMonth() === targetDate.getMonth() &&
+           d.getDate() === targetDate.getDate();
+  } catch (e) {
+    return false;
+  }
+};
+
+export const DashboardModule = ({ transactions, liveOrders, connected, onTransaction }: DashboardModuleProps) => {
+  const [todayMetrics, setTodayMetrics] = useState({ totalSales: 0, transactionCount: 0, avgTransaction: 0 });
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+
+  // State untuk simulator premium
+  const [isSimOpen, setIsSimOpen] = useState(false);
+  const [simMode, setSimMode] = useState<"local" | "cloud">("local");
+  const [simPayMethod, setSimPayMethod] = useState("QRIS");
+  const [simTableId, setSimTableId] = useState("A3");
+  const [simQty, setSimQty] = useState(1);
+  const [selectedPresetIndex, setSelectedPresetIndex] = useState(0);
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [localSimulatedTransactions, setLocalSimulatedTransactions] = useState<Transaction[]>(() => {
+    try {
+      const saved = localStorage.getItem("pawon_simulated_tx");
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  // Simpan simulasi lokal ke localStorage agar persistent
+  useEffect(() => {
+    localStorage.setItem("pawon_simulated_tx", JSON.stringify(localSimulatedTransactions));
+  }, [localSimulatedTransactions]);
+
+  const presetItems = [
+    { id: "menu_006", name: "GULAI MANGUT SEMARANG", price: 35000, category: "Makanan" },
+    { id: "menu_008", name: "NASI AYAM PENYET SEMARANG", price: 30000, category: "Makanan" },
+    { id: "menu_029", name: "ES TEH", price: 5000, category: "Minuman" },
+    { id: "menu_010", name: "TAHU GIMBAL SEMARANG", price: 25000, category: "Makanan" }
+  ];
+
+  // Gabungkan transaksi nyata dengan simulasi lokal untuk visualisasi grafik
+  const allTransactions = [...localSimulatedTransactions, ...transactions];
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    let transactionsSubscription: any;
+    let ordersSubscription: any;
+
+    const fetchMetrics = async () => {
+      setLoading(true);
+      setFetchError(false);
+      try {
+        const startOfLocalToday = new Date();
+        startOfLocalToday.setHours(0, 0, 0, 0);
+        const endOfLocalToday = new Date();
+        endOfLocalToday.setHours(23, 59, 59, 999);
+
+        const { data, error } = await supabase
+          .from('transactions')
+          .select('total')
+          .gte('created_at', startOfLocalToday.toISOString())
+          .lte('created_at', endOfLocalToday.toISOString());
+
+        if (error) throw error;
+
+        if (data) {
+          const totalSales = data.reduce((sum, tx) => sum + (tx.total || 0), 0);
+          const transactionCount = data.length;
+          const avgTransaction = transactionCount > 0 ? Math.round(totalSales / transactionCount) : 0;
+
+          setTodayMetrics({ totalSales, transactionCount, avgTransaction });
+        }
+      } catch (err) {
+        console.error("Failed to fetch metrics:", err);
+        setFetchError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (connected) {
+      fetchMetrics();
+
+      transactionsSubscription = supabase
+        .channel('transactions-changes')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'transactions'
+        }, () => {
+          fetchMetrics();
+        })
+        .subscribe();
+
+      ordersSubscription = supabase
+        .channel('orders-changes')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'orders'
+        }, () => {
+          console.log('Orders updated via realtime');
+        })
+        .subscribe();
+
+      interval = setInterval(fetchMetrics, 30000);
+    } else {
+      setLoading(false);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+      if (transactionsSubscription) transactionsSubscription.unsubscribe();
+      if (ordersSubscription) ordersSubscription.unsubscribe();
+    };
+  }, [connected, retryCount]);
+
+  const now = new Date();
+  const todayTx = allTransactions.filter(tx => isSameLocalDay(tx.created_at, now));
+  const todaySales = todayTx.reduce((s, tx) => s + tx.total, 0);
+  const todayCount = todayTx.length;
+  const todayAvg = todayCount > 0 ? Math.round(todaySales / todayCount) : 0;
+
+  const pending = liveOrders.filter(o => o.status === "pending").length;
+  const cooking = liveOrders.filter(o => o.status === "cooking").length;
+
+  // ─── Data Processing ────────────────────────────────────────────────────────
+  
+  // 1. Hourly Sales
+  const hourlyData = Array.from({ length: 24 }, (_, i) => ({
+    hour: i.toString().padStart(2, "0") + ":00",
+    sales: 0,
+    count: 0
+  }));
+
+  allTransactions.forEach(tx => {
+    if (isSameLocalDay(tx.created_at, now)) {
+      const hour = new Date(tx.created_at).getHours();
+      if (hour >= 0 && hour < 24) {
+        hourlyData[hour].sales += tx.total;
+        hourlyData[hour].count += 1;
+      }
+    }
+  });
+
+  // 2. Category Composition
+  const catMap = new Map<string, number>();
+  allTransactions.forEach(tx => {
+    if (isSameLocalDay(tx.created_at, now)) {
+      tx.items.forEach(item => {
+        const cat = item.category || "Lainnya";
+        catMap.set(cat, (catMap.get(cat) || 0) + (item.price * item.qty));
+      });
+    }
+  });
+  const categoryData = Array.from(catMap.entries()).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value);
+
+  // 3. Peak Hours (Order Count)
+  const peakHoursData = hourlyData.map(h => ({ hour: h.hour, count: h.count })).filter(h => h.count > 0 || (parseInt(h.hour) > 9 && parseInt(h.hour) < 22));
+
+  // Handler jalankan simulasi
+  const handleRunSimulation = async () => {
+    const selectedItem = presetItems[selectedPresetIndex];
+    if (!selectedItem) return;
+    setIsSimulating(true);
+
+    try {
+      const cartItem = {
+        id: selectedItem.id,
+        name: selectedItem.name,
+        price: selectedItem.price,
+        qty: simQty,
+        category: selectedItem.category
+      };
+
+      const subtotal = selectedItem.price * simQty;
+      const tax = Math.round(subtotal * 0.1);
+      const total = subtotal + tax;
+      const txId = `SIM-${Date.now().toString(36).toUpperCase()}`;
+
+      const tx: Transaction = {
+        id: txId,
+        table_id: simTableId || null,
+        items: [cartItem],
+        subtotal,
+        tax,
+        total,
+        method: simPayMethod,
+        created_at: new Date().toISOString()
+      };
+
+      if (simMode === "local") {
+        setLocalSimulatedTransactions(prev => [tx, ...prev]);
+        
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+
+        if ("speechSynthesis" in window) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(
+            `Simulasi transaksi Meja ${simTableId || "Take Away"} sukses`
+          );
+          utterance.lang = "id-ID";
+          utterance.rate = 0.95;
+          window.speechSynthesis.speak(utterance);
+        }
+
+        toast.success(`Simulasi Lokal Sukses! ${txId} ditambahkan ke grafik.`, {
+          description: `Total: ${rp(total)} · ${simPayMethod}`,
+          position: "bottom-center",
+          style: { fontSize: "10px", fontWeight: "bold" }
+        });
+      } else {
+        if (!connected) {
+          toast.error("Gagal mengirim simulasi: Koneksi Supabase offline.");
+          setIsSimulating(false);
+          return;
+        }
+
+        if (onTransaction) {
+          await onTransaction(tx);
+          
+          confetti({
+            particleCount: 150,
+            spread: 90,
+            origin: { y: 0.6 }
+          });
+
+          if ("speechSynthesis" in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(
+              `Simulasi transaksi cloud Meja ${simTableId || "Take Away"} berhasil disinkronkan`
+            );
+            utterance.lang = "id-ID";
+            utterance.rate = 0.95;
+            window.speechSynthesis.speak(utterance);
+          }
+
+          toast.success(`Simulasi Cloud Berhasil! ${txId} disinkronkan ke Supabase.`, {
+            description: `Total: ${rp(total)} · Terkirim ke server`,
+            position: "bottom-center",
+            style: { fontSize: "10px", fontWeight: "bold" }
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Simulation error:", err);
+      toast.error("Gagal memproses simulasi.");
+    } finally {
+      setIsSimulating(false);
+    }
+  };
+
+  const handleClearLocalSimulations = () => {
+    setLocalSimulatedTransactions([]);
+    localStorage.removeItem("pawon_simulated_tx");
+    toast.info("Semua transaksi simulasi berhasil dibersihkan.");
+  };
+
+  return (
+    <div className="space-y-4 pt-8">
+      {/* Error Fallback Alert */}
+      {fetchError && (
+        <div className="flex items-center justify-between gap-3 bg-red-500/5 border border-red-500/15 rounded-lg p-3 animate-fade">
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>
+            <p className="text-[11px] font-bold text-foreground">
+              Offline Mode: Menggunakan data lokal.
+            </p>
+          </div>
+          <button 
+            onClick={() => setRetryCount(c => c + 1)}
+            className="text-[10px] font-black text-red-500 hover:text-red-600 px-2 py-1 bg-red-500/10 rounded-md transition-all uppercase"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Live alerts */}
+      {(pending > 0 || cooking > 0) && (
+        <div className="flex items-center gap-2 bg-amber-500/5 border border-amber-500/15 rounded-lg p-3">
+          <Bell size={14} className="text-amber-500 flex-shrink-0 animate-pulse" />
+          <p className="text-[11px] text-foreground font-semibold">
+            <span className="text-amber-500">{pending} Antrian</span> ·{" "}
+            <span className="text-orange-500">{cooking} Dimasak</span>
+          </p>
+        </div>
+      )}
+
+      {/* Premium Transaction Simulator Panel */}
+      <div className="bg-card border border-border/80 rounded-2xl p-4 overflow-hidden relative shadow-lg group hover:border-[#a76d33]/30 transition-all duration-300">
+        <button 
+          onClick={() => setIsSimOpen(!isSimOpen)}
+          className="w-full flex items-center justify-between font-black uppercase text-xs tracking-wider text-foreground hover:text-[#a76d33] transition-colors"
+        >
+          <span className="flex items-center gap-2">
+            <Sparkles size={14} className="text-amber-500 animate-pulse" />
+            Panel Kontrol Simulasi Transaksi (Kedai Elvera 57 POS)
+          </span>
+          <span className="flex items-center gap-3">
+            {localSimulatedTransactions.length > 0 && (
+              <span className="text-[9px] font-black bg-orange-500/10 border border-orange-500/30 text-orange-400 px-2 py-0.5 rounded-lg animate-pulse">
+                {localSimulatedTransactions.length} SIMULASI AKTIF
+              </span>
+            )}
+            {isSimOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </span>
+        </button>
+
+        {isSimOpen && (
+          <div className="mt-4 pt-4 border-t border-border/50 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-in slide-in-from-top-4 duration-300 text-xs select-none">
+            {/* Mode & Table Selector */}
+            <div className="space-y-3">
+              <div>
+                <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest block mb-1">Mode Simulasi</label>
+                <div className="flex bg-[#ece3d5]/30 dark:bg-white/5 p-1 rounded-xl border border-border/40">
+                  <button 
+                    type="button"
+                    onClick={() => setSimMode("local")}
+                    className={`flex-1 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all ${simMode === "local" ? "bg-[#a76d33] text-white shadow" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    Lokal (Demo)
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setSimMode("cloud")}
+                    className={`flex-1 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all ${simMode === "cloud" ? "bg-indigo-500 text-white shadow" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    Cloud (Supabase)
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest block mb-1">Meja Pelayanan</label>
+                <select 
+                  value={simTableId} 
+                  onChange={(e) => setSimTableId(e.target.value)}
+                  className="w-full bg-[#fcfbfa] dark:bg-background border border-border/60 rounded-xl px-3 py-1.5 font-bold focus:outline-none focus:ring-1 focus:ring-[#a76d33]"
+                >
+                  <option value="">Take Away (Walk-in)</option>
+                  {["A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9"].map(tbl => (
+                    <option key={tbl} value={tbl}>Meja {tbl}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Menu Selection */}
+            <div className="space-y-3">
+              <div>
+                <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest block mb-1">Pilih Item Menu</label>
+                <select 
+                  value={selectedPresetIndex} 
+                  onChange={(e) => setSelectedPresetIndex(parseInt(e.target.value))}
+                  className="w-full bg-[#fcfbfa] dark:bg-background border border-border/60 rounded-xl px-3 py-1.5 font-bold focus:outline-none focus:ring-1 focus:ring-[#a76d33]"
+                >
+                  {presetItems.map((item, idx) => (
+                    <option key={item.id} value={idx}>
+                      {item.name} ({rp(item.price)})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex justify-between items-center bg-[#ece3d5]/20 dark:bg-white/5 border border-border/40 p-2 rounded-xl">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Jumlah</span>
+                <div className="flex items-center gap-2">
+                  <button 
+                    type="button"
+                    onClick={() => setSimQty(q => Math.max(1, q - 1))}
+                    className="w-6 h-6 flex items-center justify-center bg-secondary border border-border/50 hover:bg-border/50 text-[#a76d33] font-black rounded-lg"
+                  >
+                    -
+                  </button>
+                  <span className="font-mono font-black text-xs w-6 text-center">{simQty}</span>
+                  <button 
+                    type="button"
+                    onClick={() => setSimQty(q => q + 1)}
+                    className="w-6 h-6 flex items-center justify-center bg-secondary border border-border/50 hover:bg-border/50 text-[#a76d33] font-black rounded-lg"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Payment Method */}
+            <div className="space-y-3">
+              <div>
+                <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest block mb-1">Metode Pembayaran</label>
+                <div className="grid grid-cols-3 gap-1">
+                  {["QRIS", "Tunai", "Debit"].map(m => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setSimPayMethod(m)}
+                      className={`py-2 rounded-xl border text-[9px] font-black uppercase tracking-tighter transition-all flex flex-col items-center justify-center gap-1 ${
+                        simPayMethod === m 
+                          ? "bg-[#a76d33]/15 border-[#a76d33] text-[#a76d33] font-black scale-105" 
+                          : "bg-[#fcfbfa] dark:bg-background border-border/60 text-muted-foreground hover:bg-secondary/40"
+                      }`}
+                    >
+                      {m === "QRIS" ? <Smartphone size={10} /> : m === "Tunai" ? <Banknote size={10} /> : <CreditCard size={10} />}
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Actions Panel */}
+            <div className="flex flex-col justify-end gap-2">
+              <button
+                type="button"
+                onClick={handleRunSimulation}
+                disabled={isSimulating}
+                className="w-full py-2.5 rounded-xl bg-[#a76d33] hover:bg-[#8b5a2b] text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 shadow-md shadow-[#a76d33]/10 hover:scale-[1.01] transition-all disabled:opacity-50"
+              >
+                {isSimulating ? <RefreshCw size={12} className="animate-spin" /> : <Play size={12} />}
+                Jalankan Simulasi
+              </button>
+              {localSimulatedTransactions.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleClearLocalSimulations}
+                  className="w-full py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/20 text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1 transition-colors"
+                >
+                  <Trash2 size={10} />
+                  Hapus Simulasi
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <MetricCard label="Penjualan" value={rp(todaySales)} trend="+12.4%" trendUp sub="vs kem." accent="text-indigo-400" loading={loading} />
+        <MetricCard label="Laba Kotor" value={rp(Math.round(todaySales * 0.5))} trend="+8.1%" trendUp sub="50%" accent="text-emerald-400" loading={loading} />
+        <MetricCard label="Laba Bersih" value={rp(Math.round(todaySales * 0.3))} trend="+5.3%" trendUp sub="30%" accent="text-green-400" loading={loading} />
+        <MetricCard label="Pesanan" value={String(liveOrders.filter(o => o.status !== "served").length)} sub="Aktif" accent="text-amber-400" loading={loading} />
+        <MetricCard label="Transaksi" value={String(todayCount)} trend="+3" trendUp sub={`avg ${rp(todayAvg)}`} accent="text-orange-400" loading={loading} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Sales Trend */}
+        <div className="dash-card lg:col-span-2">
+          <div className="dash-card-content">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="dash-card-title flex items-center gap-2">
+                  <BarIcon size={12} className="text-indigo-400" /> Tren Penjualan
+                </h3>
+                <p className="dash-card-subtitle">{getFormattedDateNoYear()}</p>
+              </div>
+              <span className="text-[9px] font-black text-muted-foreground bg-white/50 dark:bg-white/5 px-2 py-1 rounded-md border border-black/5 dark:border-white/10 uppercase">Live Update</span>
+            </div>
+            {loading ? (
+              <div className="w-full h-[180px] bg-secondary/30 animate-pulse rounded-lg flex items-center justify-center border border-border/50">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Loading Chart...</span>
+              </div>
+            ) : (
+              <HourlySalesChart data={hourlyData} />
+            )}
+          </div>
+        </div>
+
+        {/* Category Composition */}
+        <div className="dash-card">
+          <div className="dash-card-content">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="dash-card-title flex items-center gap-2">
+                <PieIcon size={12} className="text-emerald-400" /> Komposisi Menu
+              </h3>
+              <button className="text-[10px] font-black text-primary hover:underline uppercase">Detail</button>
+            </div>
+            {loading ? (
+              <div className="w-full h-[180px] bg-secondary/30 animate-pulse rounded-lg flex items-center justify-center border border-border/50"></div>
+            ) : (
+              <CategoryPieChart data={categoryData} />
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Peak Hours */}
+        <div className="dash-card">
+          <div className="dash-card-content">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="dash-card-title flex items-center gap-2">
+                <Clock size={12} className="text-amber-400" /> Jam Ramai
+              </h3>
+              <span className="text-[9px] font-black" style={{ color: 'rgba(87,77,51,0.4)' }}>Berdasarkan Pesanan</span>
+            </div>
+            {loading ? (
+              <div className="w-full h-[180px] bg-secondary/30 animate-pulse rounded-lg flex items-center justify-center border border-border/50"></div>
+            ) : (
+              <PeakHoursBarChart data={peakHoursData} />
+            )}
+          </div>
+        </div>
+
+        {/* Recent transactions */}
+        <div className="dash-card lg:col-span-2">
+          <div className="dash-card-content">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="dash-card-title">Transaksi Terakhir</h3>
+              <div className="flex items-center gap-2">
+                <span className="text-[9px] font-black bg-white/50 dark:bg-white/5 px-2 py-1 rounded-md border border-black/5 dark:border-white/10 flex items-center gap-1 uppercase" style={{ color: 'rgba(87,77,51,0.5)' }}>
+                  <Database size={8} className="text-indigo-400" /> Supabase
+                </span>
+              </div>
+            </div>
+            <div className="overflow-x-auto custom-scrollbar">
+              <table className="w-full text-[11px]">
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(87,77,51,0.1)' }}>
+                    {["ID", "Meja", "Item", "Jumlah", "Waktu"].map(h => (
+                      <th key={h} className={`pb-2 pr-3 font-black uppercase tracking-tighter ${h === "Jumlah" || h === "Waktu" ? "text-right" : "text-left"}`} style={{ color: 'rgba(87,77,51,0.5)' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    [...Array(3)].map((_, i) => (
+                      <tr key={i}>
+                        <td className="py-2 pr-3"><div className="h-3 bg-secondary animate-pulse rounded w-16"></div></td>
+                        <td className="py-2 pr-3"><div className="h-3 bg-secondary animate-pulse rounded w-10"></div></td>
+                        <td className="py-2 pr-3"><div className="h-3 bg-secondary animate-pulse rounded w-8"></div></td>
+                        <td className="py-2 pr-3 text-right"><div className="h-3 bg-secondary animate-pulse rounded w-12 ml-auto"></div></td>
+                        <td className="py-2 text-right"><div className="h-3 bg-secondary animate-pulse rounded w-10 ml-auto"></div></td>
+                      </tr>
+                    ))
+                  ) : (
+                    allTransactions.slice(0, 5).map(tx => {
+                      const isSim = tx.id.startsWith("SIM-");
+                      return (
+                        <tr key={tx.id} className="hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors group" style={{ borderBottom: '1px solid rgba(87,77,51,0.06)' }}>
+                          <td className="py-2 pr-3 font-mono text-[10px] flex items-center gap-1.5" style={{ color: 'rgba(87,77,51,0.4)' }}>
+                            <span>{tx.id.slice(-6).toUpperCase()}</span>
+                            {isSim && (
+                              <span className="text-[7px] font-black bg-orange-500/10 border border-orange-500/30 text-orange-400 px-1 py-0.5 rounded uppercase tracking-widest animate-pulse scale-90">
+                                SIM
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2 pr-3 font-bold" style={{ color: 'rgba(87,77,51,0.8)' }}>{tx.table_id || "Walk-in"}</td>
+                          <td className="py-2 pr-3 font-semibold" style={{ color: 'rgba(87,77,51,0.5)' }}>{tx.items.reduce((s, i) => s + i.qty, 0)} pc</td>
+                          <td className="py-2 pr-3 text-right font-black text-emerald-500">{rp(tx.total)}</td>
+                          <td className="py-2 text-right font-bold" style={{ color: 'rgba(87,77,51,0.45)' }}>{new Date(tx.created_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}</td>
+                        </tr>
+                      );
+                    })
+                  )}
+                  {!loading && allTransactions.length === 0 && (
+                    <tr><td colSpan={5} className="py-8 text-center" style={{ color: 'rgba(87,77,51,0.4)' }}>Belum ada transaksi.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

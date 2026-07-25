@@ -1,0 +1,346 @@
+/** 
+ * ⚠️ DILARANG KERAS UNTUK MENGUBAH ATAU MEMODIFIKASI FILE INI TANPA IZIN SENIOR ARCHITECT.
+ * FILE INI BERISI LOGIKA PELAPORAN DATA PENJUALAN DAN GRAFIK ANALITIK Kedai Elvera 57.
+ * KESALAHAN MODIFIKASI DAPAT MENYEBABKAN KETIDAKSESUAIAN DATA FINANSIAL. ⚠️
+ */
+
+import { useState, useRef } from "react";
+import { 
+  ArrowUpRight, Database, Printer, ExternalLink, 
+  RefreshCw, X, PieChart as PieIcon, BarChart3, Clock
+} from "lucide-react";
+import { 
+  PieChart, Pie, Cell, ResponsiveContainer, 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend 
+} from "recharts";
+import { rp, BEST_SELLER_DATA, PAYMENT_DATA } from "../data";
+import { printService } from "../../utils/printService";
+import { ClosingReceipt } from "./ReceiptTemplates";
+import { toast } from "sonner";
+import type { Transaction } from "../types";
+
+interface LaporanModuleProps {
+  transactions: Transaction[];
+}
+
+const CATEGORY_COLORS = ["#C8A96E", "#E2C98A", "#6366F1"];
+
+interface TiltCardProps {
+  children: React.ReactNode;
+  className?: string;
+  glowColor?: string;
+}
+
+function TiltCard({ children, className = "", glowColor = "rgba(200, 169, 110, 0.15)" }: TiltCardProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    setCoords({ x, y });
+  };
+
+  const handleMouseEnter = () => setIsHovered(true);
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    setCoords({ x: 0, y: 0 });
+  };
+
+  const rotateX = isHovered ? -coords.y * 12 : 0;
+  const rotateY = isHovered ? coords.x * 12 : 0;
+
+  const cardStyle: React.CSSProperties = {
+    transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(${isHovered ? 1.01 : 1}, ${isHovered ? 1.01 : 1}, 1)`,
+    transition: isHovered ? "transform 0.05s ease-out" : "transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)",
+    boxShadow: isHovered 
+      ? `0 20px 40px rgba(0, 0, 0, 0.5), 0 0 25px ${glowColor}`
+      : "0 4px 20px rgba(0, 0, 0, 0.15)",
+  };
+
+  return (
+    <div
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      style={cardStyle}
+      className={`bg-card border border-border/60 rounded-3xl p-6 transition-shadow duration-500 ease-out select-none cursor-pointer ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+export function LaporanModule({ transactions }: LaporanModuleProps) {
+  const [isPrinting, setIsPrinting] = useState(false);
+  const [pdfImage, setPdfImage] = useState<string | null>(null);
+
+  // 1. Data Penjualan per Kategori (Makanan, Snack, Minuman)
+  const categories = ["Makanan", "Snack", "Minuman"];
+  const categorySales = categories.map(cat => {
+    const amount = transactions.reduce((sum, tx) => {
+      const catItems = tx.items.filter(item => item.category === cat);
+      return sum + catItems.reduce((s, i) => s + (i.price * i.qty), 0);
+    }, 0);
+    return { name: cat, amount };
+  });
+  
+  const rawCatData = categorySales;
+
+  const totalSales = rawCatData.reduce((s, c) => s + c.amount, 0);
+  const categoryData = rawCatData.map(c => ({
+    name: c.name,
+    amount: c.amount,
+    value: Math.round((c.amount / (totalSales || 1)) * 100)
+  }));
+
+  // 2. Data Jam Ramai Transaksi (10:00 - 22:00)
+  const hourlyData = Array.from({ length: 13 }, (_, i) => {
+    const hour = i + 10;
+    const count = transactions.filter(tx => {
+      const txHour = new Date(tx.created_at).getHours();
+      return txHour === hour;
+    }).length;
+    return { name: `${hour}:00`, total: count };
+  });
+
+  const weekTotal = transactions.reduce((s, tx) => s + tx.total, 0);
+  const txCount = transactions.length;
+  const avgTx = txCount > 0 ? Math.round(weekTotal / txCount) : 0;
+
+  async function handleDirectConnect() {
+    toast.info("Mencoba koneksi ke RPP02N...");
+    const savedAddress = localStorage.getItem("connectedPrinterAddress");
+    const success = await printService.connect(savedAddress || printService.getDefaultMac());
+    if (success) toast.success("Printer terhubung!");
+    else toast.error("Gagal koneksi.");
+  }
+
+  async function handlePrintThermal() {
+    setIsPrinting(true);
+    try {
+      const todayTransactions = transactions || [];
+      const totalSales = todayTransactions.reduce((s, tx) => s + tx.total, 0);
+      const qrisSales = todayTransactions.filter(tx => tx.method === "QRIS").reduce((s, tx) => s + tx.total, 0);
+      const tunaiSales = todayTransactions.filter(tx => tx.method === "Tunai").reduce((s, tx) => s + tx.total, 0);
+      const kartuSales = todayTransactions.filter(tx => tx.method === "Debit" || tx.method === "Debit Card" || tx.method === "Kartu").reduce((s, tx) => s + tx.total, 0);
+      
+      const itemMap: Record<string, number> = {};
+      todayTransactions.forEach(tx => {
+        tx.items.forEach(item => {
+          const name = item.name.toUpperCase();
+          itemMap[name] = (itemMap[name] || 0) + item.qty;
+        });
+      });
+      const compiledItems = Object.entries(itemMap)
+        .map(([name, qty]) => ({ name, qty }))
+        .sort((a, b) => b.qty - a.qty);
+      
+      const totalItemCount = compiledItems.reduce((s, item) => s + item.qty, 0);
+
+      const realClosingData = {
+        bulan: new Date().toISOString().slice(0, 7),
+        kasir: "Sansan",
+        startTime: todayTransactions.length > 0
+          ? new Date(Math.min(...todayTransactions.map(tx => new Date(tx.created_at).getTime()))).toLocaleString("id-ID")
+          : new Date().toLocaleString("id-ID"),
+        endTime: todayTransactions.length > 0
+          ? new Date(Math.max(...todayTransactions.map(tx => new Date(tx.created_at).getTime()))).toLocaleString("id-ID")
+          : new Date().toLocaleString("id-ID"),
+        terjual: totalItemCount,
+        items: compiledItems,
+        totalVoid: 0,
+        pemasukan: {
+          qris: qrisSales,
+          debit: kartuSales,
+          tunai: tunaiSales,
+          total: totalSales
+        },
+        kasKecil: {
+          awal: 0,
+          saldo: totalSales,
+          total: totalSales
+        }
+      };
+
+      await printService.printClosingReport(realClosingData);
+      toast.success("Laporan closing dicetak.");
+    } catch (err) {
+      toast.error("Gagal cetak.");
+    } finally {
+      setIsPrinting(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4 pb-10">
+      
+      {/* Header Actions */}
+      <div className="flex justify-end items-center mb-2">
+        <button 
+          onClick={handlePrintThermal}
+          disabled={isPrinting}
+          className="flex items-center gap-2 px-4 py-2 bg-[#C8A96E]/10 text-[#C8A96E] border border-[#C8A96E]/30 rounded-xl font-black text-xs hover:bg-[#C8A96E] hover:text-[#141418] transition-all"
+        >
+          <Printer size={16} />
+          {isPrinting ? "Mencetak..." : "Cetak Struk Closing Shift"}
+        </button>
+      </div>
+
+      {/* Header Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {[
+          { label: "Omzet Penjualan", val: rp(weekTotal), trend: "+18.3%", accent: "text-primary" },
+          { label: "Volume Transaksi", val: `${txCount} Order`, trend: "+22 tx", accent: "text-foreground" },
+          { label: "Rata-rata Struk", val: rp(avgTx), trend: null, accent: "text-foreground" },
+        ].map(m => (
+          <div key={m.label} className="bg-card border border-border/60 rounded-xl p-4 flex flex-col justify-between shadow-sm">
+            <p className="text-muted-foreground text-[9px] font-black uppercase tracking-[0.15em] mb-1">{m.label}</p>
+            <p className={`font-black text-lg leading-tight font-['Poppins'] truncate ${m.accent}`}>{m.val}</p>
+            {m.trend && <p className="text-green-500 text-[10px] font-bold mt-1 flex items-center gap-1"><ArrowUpRight size={10} /> {m.trend}</p>}
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        
+        {/* ── Grafik Penjualan Per Kategori ── */}
+        <TiltCard glowColor="rgba(200, 169, 110, 0.2)">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-gold-faint flex items-center justify-center">
+                <PieIcon size={16} className="text-gold" />
+              </div>
+              <div>
+                <h3 className="font-black text-xs uppercase tracking-widest text-foreground">Penjualan Per Kategori</h3>
+                <p className="text-[10px] text-muted-foreground font-bold uppercase mt-0.5">Food, Snack & Drinks</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="h-[240px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={categoryData}
+                  cx="50%" cy="50%"
+                  innerRadius={60}
+                  outerRadius={85}
+                  paddingAngle={8}
+                  dataKey="amount"
+                >
+                  {categoryData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} stroke="none" />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#141418', border: '1px solid #C8A96E', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}
+                  itemStyle={{ color: '#fff' }}
+                  formatter={(value: number) => rp(value)}
+                />
+                <Legend verticalAlign="bottom" height={36} iconType="circle" />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </TiltCard>
+
+        {/* ── Grafik Jam Ramai Transaksi ── */}
+        <TiltCard glowColor="rgba(99, 102, 241, 0.2)">
+          <div className="flex items-center gap-2 mb-6">
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+              <BarChart3 size={16} className="text-indigo-400" />
+            </div>
+            <div>
+              <h3 className="font-black text-xs uppercase tracking-widest text-foreground">Jam Ramai Transaksi</h3>
+              <p className="text-[10px] text-muted-foreground font-bold uppercase mt-0.5">Traffic Analysis (10:00 - 22:00)</p>
+            </div>
+          </div>
+
+          <div className="h-[240px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={hourlyData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                <XAxis 
+                  dataKey="name" 
+                  fontSize={10} 
+                  fontWeight="bold" 
+                  tick={{ fill: '#6B7080' }} 
+                  axisLine={false} 
+                  tickLine={false}
+                />
+                <YAxis 
+                  fontSize={10} 
+                  fontWeight="bold" 
+                  tick={{ fill: '#6B7080' }} 
+                  axisLine={false} 
+                  tickLine={false}
+                />
+                <Tooltip 
+                  cursor={{ fill: 'rgba(200, 169, 110, 0.05)' }}
+                  contentStyle={{ backgroundColor: '#141418', border: '1px solid #6366F1', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}
+                />
+                <Bar dataKey="total" radius={[4, 4, 0, 0]}>
+                  {hourlyData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={index % 2 === 0 ? "#6366F1" : "#818CF8"} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </TiltCard>
+
+      </div>
+
+
+
+      {/* ── Table Top Products & Payment (Simplified) ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <Clock size={16} className="text-gold" />
+            <h3 className="font-black text-xs uppercase tracking-widest text-foreground">Menu Terlaris</h3>
+          </div>
+          <div className="space-y-3">
+            {BEST_SELLER_DATA.slice(0, 5).map((d, i) => (
+              <div key={d.name} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
+                <div className="flex items-center gap-3">
+                  <span className="text-muted-foreground text-[10px] font-black">0{i+1}</span>
+                  <span className="text-xs font-bold text-foreground">{d.name}</span>
+                </div>
+                <span className="text-xs font-black text-gold">{d.qty} Porsi</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <Database size={16} className="text-indigo-400" />
+            <h3 className="font-black text-xs uppercase tracking-widest text-foreground">Metode Pembayaran</h3>
+          </div>
+          <div className="space-y-4">
+            {PAYMENT_DATA.map(d => (
+              <div key={d.name} className="space-y-1.5">
+                <div className="flex justify-between items-end">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{d.name}</span>
+                  <span className="text-xs font-black text-foreground">{d.value}%</span>
+                </div>
+                <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+                  <div 
+                    className="h-full rounded-full transition-all duration-1000" 
+                    style={{ width: `${d.value}%`, backgroundColor: d.color }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+    </div>
+  );
+}

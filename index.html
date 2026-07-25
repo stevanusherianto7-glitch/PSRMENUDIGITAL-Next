@@ -1,0 +1,53 @@
+<!--
+  ⚠️ DILARANG KERAS UNTUK MENGUBAH ATAU MEMODIFIKASI FILE INI TANPA IZIN SENIOR ARCHITECT.
+  FILE INI BERISI KONFIGURASI PWA, SEO META TAGS, DAN DARK THEME FLASH PREVENTION.
+  KESALAHAN MODIFIKASI DAPAT MENYEBABKAN PWA TIDAK TERINSTALL, SEO RUSAK, ATAU TEMA BERKEDIP. ⚠️
+-->
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    
+    <!-- SEO & Brand -->
+    <title>Kedai Elvera 57 — POS & Menu Digital</title>
+    <meta name="description" content="Sistem Kasir & Menu Digital Kedai Elvera 57. Sajian Spesial Penuh Rasa. Pesan langsung dari meja via QR Code." />
+    <meta name="author" content="Kedai Elvera 57" />
+
+    <!-- PWA Meta -->
+    <meta name="theme-color" content="#E87722" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Kedai Elvera 57" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="msapplication-TileColor" content="#F7F1E6" />
+
+    <!-- Icons -->
+    <link rel="icon" type="image/webp" href="/icons/icon-192.webp" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.webp" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://pbitlwrgainrcippjuwd.supabase.co" />
+
+    <!-- Critical inline styles -->
+    <style>
+      html, body { height: 100%; margin: 0; }
+      #root { height: 100%; }
+      /* Prevent FOUC — apply saved theme instantly */
+      .dark { --background: #1A1A1E; }
+    </style>
+    <script>
+      // Apply dark theme before paint to prevent flash
+      try { if (localStorage.getItem('pawon_theme') === 'dark') document.documentElement.classList.add('dark'); } catch(e) {}
+    </script>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

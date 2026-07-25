@@ -1,0 +1,971 @@
+/** 
+ * ⚠️ DILARANG KERAS UNTUK MENGUBAH ATAU MEMODIFIKASI FILE INI TANPA IZIN SENIOR ARCHITECT.
+ * FILE INI BERISI CSS VIEWPORT ANDROID, SAFE AREA, OVERSCROLL, DAN KEYBOARD HANDLING.
+ * KESALAHAN MODIFIKASI DAPAT MENYEBABKAN LAYOUT RUSAK DI PERANGKAT ANDROID/TABLET. ⚠️
+ */
+@keyframes draw {
+  from { stroke-dashoffset: 1500; }
+  to { stroke-dashoffset: 0; }
+}
+.animate-draw {
+  stroke-dasharray: 1500;
+  stroke-dashoffset: 1500;
+  animation: draw 2.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.animate-fade {
+  opacity: 0;
+  animation: fadeIn 1s ease-out forwards;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.delay-0 { animation-delay: 1.50s; }
+.delay-1 { animation-delay: 1.55s; }
+.delay-2 { animation-delay: 1.60s; }
+.delay-3 { animation-delay: 1.65s; }
+.delay-4 { animation-delay: 1.70s; }
+.delay-5 { animation-delay: 1.75s; }
+.delay-6 { animation-delay: 1.80s; }
+.delay-7 { animation-delay: 1.85s; }
+.delay-8 { animation-delay: 1.90s; }
+.delay-9 { animation-delay: 1.95s; }
+.delay-10 { animation-delay: 2.00s; }
+.delay-11 { animation-delay: 2.05s; }
+.delay-12 { animation-delay: 2.10s; }
+.font-poppins { font-family: 'Poppins', sans-serif; }
+
+/* ─────────────────────────────────────────────────────────────
+   Capacitor / Android / Mobile Viewport Optimization
+   ───────────────────────────────────────────────────────────── */
+
+:root {
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+}
+
+html {
+  /* Prevent overscroll bounce (rubber-band effect) on Android */
+  overscroll-behavior: none;
+  
+  /* Fix 100vh issue on mobile — use dvh when available */
+  height: 100%;
+  height: 100dvh;
+}
+
+body {
+  /* Prevent text selection on tap (mobile app feel) */
+  -webkit-user-select: none;
+  user-select: none;
+
+  /* Prevent pull-to-refresh on Android Chrome/WebView */
+  overscroll-behavior-y: contain;
+
+  /* Prevent double-tap zoom on buttons/links */
+  touch-action: manipulation;
+
+  /* Apply safe area padding for status bar & navigation bar */
+  padding-top: var(--safe-area-top);
+  padding-bottom: var(--safe-area-bottom);
+  padding-left: var(--safe-area-left);
+  padding-right: var(--safe-area-right);
+
+  /* Smooth font rendering */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  
+  /* Prevent layout shift when virtual keyboard opens */
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Safe Area Utility Classes for Android/iOS
+   ───────────────────────────────────────────────────────────── */
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.mb-safe {
+  margin-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.bottom-safe {
+  bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Root app container — handle scroll inside, not body */
+#root {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Allow text selection in inputs and textareas */
+input, textarea, [contenteditable] {
+  -webkit-user-select: auto;
+  user-select: auto;
+  touch-action: auto;
+}
+
+/* Prevent tap highlight on Android */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Android Status Bar Overlay Area ───────────────────────── */
+/* When Capacitor runs in 'overlay' mode, status bar overlaps content.
+   This creates a top padding zone that respects the system bar. */
+.safe-area-top {
+  padding-top: var(--safe-area-top);
+}
+
+.safe-area-bottom {
+  padding-bottom: var(--safe-area-bottom);
+}
+
+/* ── Keyboard Handling ─────────────────────────────────────── */
+/* When virtual keyboard opens, prevent body from scrolling up */
+body.keyboard-open {
+  height: auto;
+}
+
+/* ── Orientation Change ────────────────────────────────────── */
+/* Smooth transition when rotating tablet between portrait/landscape */
+@media (orientation: landscape) {
+  :root {
+    --safe-area-left: env(safe-area-inset-left, 0px);
+    --safe-area-right: env(safe-area-inset-right, 0px);
+  }
+}
+
+/* ── Tablet Optimization (7-12 inch) ──────────────────────── */
+@media (min-width: 600px) and (max-width: 1024px) {
+  /* Optimize touch targets for tablet */
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* ── No Scrollbar on Mobile ────────────────────────────────── */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Custom Scrollbar (Desktop/Tablet) ─────────────────────── */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ── Order Status Filter Cards (Uiverse-inspired) ────────── */
+.order-filter-card {
+  position: relative;
+  padding: 16px 12px;
+  background:
+    radial-gradient(178.94% 106.41% at 26.42% 106.41%, #FFF7B1 0%, rgba(255, 255, 255, 0) 71.88%),
+    #FFFFFF;
+  box-shadow:
+    0px 155px 62px rgba(0, 0, 0, 0.01),
+    0px 87px 52px rgba(0, 0, 0, 0.05),
+    0px 39px 39px rgba(0, 0, 0, 0.09),
+    0px 10px 21px rgba(0, 0, 0, 0.1),
+    0px 0px 0px rgba(0, 0, 0, 0.1);
+  border-radius: 18px;
+  transition: all 0.8s cubic-bezier(0.15, 0.83, 0.66, 1);
+  cursor: pointer;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.order-filter-card:hover {
+  transform: scale(1.05);
+}
+
+.order-filter-card.active {
+  transform: scale(1.05);
+  box-shadow:
+    0px 155px 62px rgba(0, 0, 0, 0.01),
+    0px 87px 52px rgba(0, 0, 0, 0.05),
+    0px 39px 39px rgba(0, 0, 0, 0.09),
+    0px 10px 21px rgba(0, 0, 0, 0.12),
+    0px 0px 0px rgba(0, 0, 0, 0.1),
+    0px 0px 20px rgba(232, 119, 34, 0.15);
+  border-color: rgba(232, 119, 34, 0.25);
+}
+
+/* Card label text */
+.order-filter-card .card-label {
+  font-weight: 800;
+  font-size: 11px;
+  line-height: 135%;
+  color: rgba(87, 77, 51, 0.66);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.order-filter-card.active .card-label {
+  color: rgba(87, 77, 51, 1);
+}
+
+/* Card icon */
+.order-filter-card .card-icon {
+  color: rgba(87, 77, 51, 0.45);
+  transition: all 0.4s ease;
+}
+
+.order-filter-card.active .card-icon {
+  color: rgba(87, 77, 51, 0.85);
+}
+
+/* Card count badge */
+.order-filter-card .card-count {
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 1;
+  color: rgba(87, 77, 51, 1);
+  font-family: 'Poppins', sans-serif;
+}
+
+.order-filter-card .card-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 9px;
+  font-weight: 700;
+  font-size: 10px;
+  color: rgba(87, 77, 51, 0.66);
+}
+
+/* ── Dark mode adaptation ─────────────────────────────────── */
+.dark .order-filter-card {
+  background:
+    radial-gradient(178.94% 106.41% at 26.42% 106.41%, rgba(232, 119, 34, 0.08) 0%, rgba(255, 255, 255, 0) 71.88%),
+    hsl(var(--card));
+  border-color: hsl(var(--border));
+  box-shadow:
+    0px 87px 52px rgba(0, 0, 0, 0.15),
+    0px 39px 39px rgba(0, 0, 0, 0.2),
+    0px 10px 21px rgba(0, 0, 0, 0.25);
+}
+
+.dark .order-filter-card.active {
+  box-shadow:
+    0px 87px 52px rgba(0, 0, 0, 0.15),
+    0px 39px 39px rgba(0, 0, 0, 0.2),
+    0px 10px 21px rgba(0, 0, 0, 0.25),
+    0px 0px 20px rgba(232, 119, 34, 0.2);
+  border-color: rgba(232, 119, 34, 0.35);
+}
+
+.dark .order-filter-card .card-label {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.dark .order-filter-card.active .card-label {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.dark .order-filter-card .card-icon {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.dark .order-filter-card.active .card-icon {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.dark .order-filter-card .card-count {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.dark .order-filter-card .card-badge {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* ── Dashboard Chart Cards (Uiverse Samalander0) ─────────── */
+.dash-card {
+  background: #FFFFFF;
+  color: black;
+  position: relative;
+  border-radius: 2.5em;
+  padding: 1.5em;
+  transition: transform 0.4s ease;
+  cursor: pointer;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.dash-card::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 50%;
+  height: 40%;
+  background: radial-gradient(
+    ellipse at bottom left,
+    #fff480 0%,
+    rgba(255, 244, 128, 0.3) 40%,
+    rgba(255, 244, 128, 0) 70%
+  );
+  pointer-events: none;
+  z-index: 0;
+  border-radius: 2.5em;
+}
+
+.dash-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.dash-card .dash-card-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  transition: transform 0.4s ease;
+}
+
+.dash-card .dash-card-title {
+  font-weight: 800;
+  font-size: 14px;
+  line-height: 135%;
+  color: rgba(87, 77, 51, 0.9);
+}
+
+.dash-card .dash-card-subtitle {
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 135%;
+  color: rgba(87, 77, 51, 0.45);
+  margin-top: 2px;
+}
+
+.dash-card:hover {
+  transform: scale(0.97);
+}
+
+.dash-card:hover .dash-card-content {
+  transform: scale(0.96);
+}
+
+.dash-card:active {
+  transform: scale(0.93);
+}
+
+/* Dark mode */
+.dark .dash-card {
+  background: hsl(var(--card));
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+
+.dark .dash-card::before {
+  background: radial-gradient(
+    ellipse at bottom left,
+    rgba(232, 119, 34, 0.1) 0%,
+    rgba(232, 119, 34, 0.04) 40%,
+    rgba(232, 119, 34, 0) 70%
+  );
+}
+
+.dark .dash-card .dash-card-title {
+  color: hsl(var(--foreground));
+}
+
+.dark .dash-card .dash-card-subtitle {
+  color: hsl(var(--muted-foreground));
+}
+
+/* From Uiverse.io by satyamchaudharydev */ 
+.uiverse-button {
+  width: fit-content;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.8em 1.1em;
+  gap: 0.4rem;
+  border: none;
+  font-weight: bold;
+  border-radius: 30px;
+  cursor: pointer;
+  text-shadow: 2px 2px 3px rgb(136 0 136 / 50%);
+  background: linear-gradient(
+      15deg,
+      #880088,
+      #aa2068,
+      #cc3f47,
+      #de6f3d,
+      #f09f33,
+      #de6f3d,
+      #cc3f47,
+      #aa2068,
+      #880088
+    )
+    no-repeat;
+  background-size: 300%;
+  background-position: left center;
+  transition: background 0.3s ease;
+  color: #fff;
+}
+
+.uiverse-button:hover {
+  background-size: 320%;
+  background-position: right center;
+}
+
+.uiverse-button:hover svg {
+  stroke: #fff;
+}
+
+.uiverse-button svg {
+  width: 23px;
+  stroke: #f09f33;
+  transition: 0.3s ease;
+}
+
+.uiverse-card-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  text-shadow: 2px 2px 3px rgb(136 0 136 / 50%);
+  background: linear-gradient(
+      15deg,
+      #880088,
+      #aa2068,
+      #cc3f47,
+      #de6f3d,
+      #f09f33,
+      #de6f3d,
+      #cc3f47,
+      #aa2068,
+      #880088
+    )
+    no-repeat;
+  background-size: 300%;
+  background-position: left center;
+  transition: all 0.4s ease;
+  color: #fff;
+}
+
+.uiverse-card-btn:hover {
+  background-size: 320%;
+  background-position: right center;
+  transform: scale(1.02);
+}
+
+.uiverse-card-btn:hover svg {
+  stroke: #fff;
+}
+
+.uiverse-card-btn svg {
+  stroke: #f09f33;
+  transition: 0.3s ease;
+}
+
+/* From Uiverse.io by StealthWorm */ 
+.space-btn {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  background-size: 300% 300%;
+  cursor: pointer;
+  backdrop-filter: blur(1rem);
+  border-radius: 5rem;
+  transition: 0.5s;
+  animation: gradient_301 5s ease infinite;
+  border: double 2px transparent;
+  background-image: linear-gradient(#212121, #212121),
+    linear-gradient(
+      137.48deg,
+      #ffdb3b 10%,
+      #fe53bb 45%,
+      #8f51ea 67%,
+      #0044ff 87%
+    );
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+
+.space-stars-container {
+  position: absolute;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  transition: 0.5s;
+  backdrop-filter: blur(1rem);
+  border-radius: 5rem;
+}
+
+.space-btn strong {
+  z-index: 3;
+  font-family: 'Poppins', sans-serif;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #ffffff;
+  text-shadow: 0 0 4px white;
+}
+
+.space-glow {
+  position: absolute;
+  display: flex;
+  width: 100%;
+  z-index: 2;
+}
+
+.space-circle {
+  width: 100%;
+  height: 30px;
+  filter: blur(2rem);
+  animation: pulse_3011 4s infinite;
+  z-index: 2;
+}
+
+.space-circle:nth-of-type(1) {
+  background: rgba(254, 83, 186, 0.636);
+}
+
+.space-circle:nth-of-type(2) {
+  background: rgba(142, 81, 234, 0.704);
+}
+
+.space-btn:hover .space-stars-container {
+  z-index: 2;
+  background-color: #212121;
+}
+
+.space-btn:hover {
+  transform: scale(1.05);
+}
+
+.space-btn:active {
+  border: double 2px #fe53bb;
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  animation: none;
+}
+
+.space-btn:active .space-circle {
+  background: #fe53bb;
+}
+
+.space-stars {
+  position: relative;
+  background: transparent;
+  width: 200rem;
+  height: 200rem;
+}
+
+.space-stars::after {
+  content: '';
+  position: absolute;
+  top: -10rem;
+  left: -100rem;
+  width: 100%;
+  height: 100%;
+  animation: animStarRotate 90s linear infinite;
+  background-image: radial-gradient(#ffffff 1px, transparent 1%);
+  background-size: 50px 50px;
+}
+
+.space-stars::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -50%;
+  width: 170%;
+  height: 500%;
+  animation: animStar 60s linear infinite;
+  background-image: radial-gradient(#ffffff 1px, transparent 1%);
+  background-size: 50px 50px;
+  opacity: 0.5;
+}
+
+@keyframes animStar {
+  from { transform: translateY(0); }
+  to { transform: translateY(-135rem); }
+}
+
+@keyframes animStarRotate {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0); }
+}
+
+@keyframes gradient_301 {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes pulse_3011 {
+  0% { transform: scale(0.75); box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0, 0, 0, 0); }
+  100% { transform: scale(0.75); box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
+}
+
+/* From Uiverse.io by zanina-yassine */
+.stok-card {
+  position: relative;
+  background: radial-gradient(178.94% 106.41% at 26.42% 106.41%, #FFF7B1 0%, rgba(255, 255, 255, 0) 71.88%), #FFFFFF;
+  box-shadow: 0px 155px 62px rgba(0, 0, 0, 0.01), 0px 87px 52px rgba(0, 0, 0, 0.05), 0px 39px 39px rgba(0, 0, 0, 0.09), 0px 10px 21px rgba(0, 0, 0, 0.1), 0px 0px 0px rgba(0, 0, 0, 0.1);
+  transition: all 0.8s cubic-bezier(0.15, 0.83, 0.66, 1);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.dark .stok-card {
+  background: radial-gradient(178.94% 106.41% at 26.42% 106.41%, #413a10 0%, rgba(20, 20, 20, 0) 71.88%), #1A1A1A;
+}
+
+.stok-card:hover {
+  transform: scale(1.02);
+}
+
+.stok-container {
+  width: 250px;
+  height: 250px;
+  position: absolute;
+  right: -35px;
+  top: -50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: scale(0.7);
+  opacity: 0.35;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.stok-cloud {
+  width: 250px;
+}
+
+.stok-front {
+  padding-top: 45px;
+  margin-left: 25px;
+  display: inline;
+  position: absolute;
+  z-index: 1;
+  animation: clouds 8s infinite;
+  animation-timing-function: ease-in-out;
+}
+
+.stok-back {
+  margin-top: -30px;
+  margin-left: 150px;
+  z-index: 2;
+  animation: clouds 12s infinite;
+  animation-timing-function: ease-in-out;
+}
+
+.stok-right-front, .stok-left-front, .stok-right-back, .stok-left-back {
+  background-color: #4c9beb;
+  display: inline-block;
+  z-index: 5;
+}
+
+.stok-right-front { width: 45px; height: 45px; border-radius: 50% 50% 50% 0%; margin-left: -25px; }
+.stok-left-front { width: 65px; height: 65px; border-radius: 50% 50% 0% 50%; }
+.stok-right-back { width: 50px; height: 50px; border-radius: 50% 50% 50% 0%; margin-left: -20px; }
+.stok-left-back { width: 30px; height: 30px; border-radius: 50% 50% 0% 50%; }
+
+.stok-sun {
+  width: 120px;
+  height: 120px;
+  background: linear-gradient(to right, #fcbb04, #fffc00);
+  border-radius: 60px;
+  display: inline;
+  position: absolute;
+}
+
+.stok-sunshine {
+  animation: sunshines 2s infinite;
+}
+
+@keyframes sunshines {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+@keyframes clouds {
+  0% { transform: translateX(15px); }
+  50% { transform: translateX(0px); }
+  100% { transform: translateX(15px); }
+}
+
+/* ═══ SDM Kartu Karyawan — Animasi Terinspirasi Uiverse.io ═══ */
+@keyframes sdm-sunshine {
+  0% { transform: scale(1); opacity: 0.2; }
+  50% { transform: scale(1.3); opacity: 0.08; }
+  100% { transform: scale(1); opacity: 0.2; }
+}
+
+@keyframes sdm-float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+  100% { transform: translateY(0px); }
+}
+
+@keyframes sdm-clouds {
+  0% { transform: translateX(8px); }
+  50% { transform: translateX(0px); }
+  100% { transform: translateX(8px); }
+}
+
+/* From Uiverse.io by Shell0110 (Adapted for Sidebar Tooltips) */ 
+.sidebar-item {
+  position: relative;
+}
+
+.sidebar-item:hover {
+  animation: jello-vertical 1s both;
+}
+
+@keyframes jello-vertical {
+  0% { transform: scale3d(1, 1, 1); }
+  30% { transform: scale3d(0.75, 1.25, 1); }
+  40% { transform: scale3d(1.25, 0.75, 1); }
+  50% { transform: scale3d(0.85, 1.15, 1); }
+  65% { transform: scale3d(1.05, 0.95, 1); }
+  75% { transform: scale3d(0.95, 1.05, 1); }
+  100% { transform: scale3d(1, 1, 1); }
+}
+
+.sidebar-tooltip {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%) translateX(5px);
+  opacity: 0;
+  background-color: #e87722;
+  background-image: linear-gradient(147deg, #f97316 0%, #ea580c 74%);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition-duration: 0.2s;
+  pointer-events: none;
+  letter-spacing: 0.5px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  z-index: 100;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.sidebar-tooltip::before {
+  position: absolute;
+  content: "";
+  width: 10px;
+  height: 10px;
+  background-color: #ea580c;
+  transform: rotate(45deg);
+  left: -4px;
+  top: calc(50% - 5px);
+  transition-duration: 0.3s;
+  z-index: -1;
+  border-radius: 1px;
+}
+
+.sidebar-item:hover .sidebar-tooltip {
+  transform: translateY(-50%) translateX(15px);
+  opacity: 1;
+  transition-duration: 0.3s;
+}
+
+/* From Uiverse.io by kennyotsu (Adapted) */ 
+.kenny-container {
+  position: relative;
+  width: 100%;
+  height: 140px;
+  transition: 200ms;
+}
+
+.kenny-container:active {
+  transform: scale(0.95);
+}
+
+.kenny-card {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border-radius: 16px;
+  transition: 700ms;
+  background: linear-gradient(43deg, rgb(65, 88, 208) 0%, rgb(200, 80, 192) 46%, rgb(255, 204, 112) 100%);
+}
+
+.kenny-title {
+  opacity: 0;
+  transition-duration: 300ms;
+  transition-timing-function: ease-in-out;
+  transition-delay: 100ms;
+  position: absolute;
+  font-size: 14px;
+  font-weight: bold;
+  color: white;
+  text-align: center;
+}
+
+.kenny-tracker:hover ~ .kenny-card .kenny-title {
+  opacity: 1;
+}
+
+.kenny-prompt {
+  bottom: 8px;
+  left: 12px;
+  z-index: 20;
+  font-size: 16px;
+  font-weight: bold;
+  transition: 300ms ease-in-out;
+  position: absolute;
+  color: rgb(255, 255, 255);
+}
+
+.kenny-tracker {
+  position: absolute;
+  z-index: 200;
+  width: 100%;
+  height: 100%;
+}
+
+.kenny-tracker:hover {
+  cursor: pointer;
+}
+
+.kenny-tracker:hover ~ .kenny-card .kenny-prompt {
+  opacity: 0;
+}
+
+.kenny-tracker:hover ~ .kenny-card {
+  transition: 300ms;
+  filter: brightness(1.1);
+}
+
+.kenny-container:hover .kenny-card::before {
+  transition: 200ms;
+  content: '';
+  opacity: 80%;
+}
+
+.kenny-canvas {
+  perspective: 800px;
+  inset: 0;
+  z-index: 200;
+  position: absolute;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr 1fr 1fr;
+  gap: 0px 0px;
+  grid-template-areas: "tr-1 tr-2 tr-3 tr-4 tr-5"
+    "tr-6 tr-7 tr-8 tr-9 tr-10"
+    "tr-11 tr-12 tr-13 tr-14 tr-15"
+    "tr-16 tr-17 tr-18 tr-19 tr-20"
+    "tr-21 tr-22 tr-23 tr-24 tr-25";
+}
+
+.kenny-card::before {
+  content: '';
+  background: linear-gradient(43deg, rgb(65, 88, 208) 0%, rgb(200, 80, 192) 46%, rgb(255, 204, 112) 100%);
+  filter: blur(2rem);
+  opacity: 30%;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  z-index: -1;
+  transition: 200ms;
+}
+
+.tr-1 { grid-area: tr-1; }
+.tr-2 { grid-area: tr-2; }
+.tr-3 { grid-area: tr-3; }
+.tr-4 { grid-area: tr-4; }
+.tr-5 { grid-area: tr-5; }
+.tr-6 { grid-area: tr-6; }
+.tr-7 { grid-area: tr-7; }
+.tr-8 { grid-area: tr-8; }
+.tr-9 { grid-area: tr-9; }
+.tr-10 { grid-area: tr-10; }
+.tr-11 { grid-area: tr-11; }
+.tr-12 { grid-area: tr-12; }
+.tr-13 { grid-area: tr-13; }
+.tr-14 { grid-area: tr-14; }
+.tr-15 { grid-area: tr-15; }
+.tr-16 { grid-area: tr-16; }
+.tr-17 { grid-area: tr-17; }
+.tr-18 { grid-area: tr-18; }
+.tr-19 { grid-area: tr-19; }
+.tr-20 { grid-area: tr-20; }
+.tr-21 { grid-area: tr-21; }
+.tr-22 { grid-area: tr-22; }
+.tr-23 { grid-area: tr-23; }
+.tr-24 { grid-area: tr-24; }
+.tr-25 { grid-area: tr-25; }
+
+.tr-1:hover ~ .kenny-card { transition: 125ms ease-in-out; transform: rotateX(20deg) rotateY(-10deg) rotateZ(0deg); }
+.tr-2:hover ~ .kenny-card { transition: 125ms ease-in-out; transform: rotateX(20deg) rotateY(-5deg) rotateZ(0deg); }
+.tr-3:hover ~ .kenny-card { transition: 125ms ease-in-out; transform: rotateX(20deg) rotateY(0deg) rotateZ(0deg); }
+.tr-4:hover ~ .kenny-card { transition: 125ms ease-in-out; transform: rotateX(20deg) rotateY(5deg) rotateZ(0deg); }
+.tr-5:hover ~ .kenny-card { transition: 125ms ease-in-out; transform: rotateX(20deg) rotateY(10deg) rotateZ(0deg); }
+.tr-6:hover ~ .kenny-card { transition: 125ms ease-in-out; transform: rotateX(10deg) rotateY(-10deg) rotateZ(0deg); }
+.tr-7:hover ~ .kenny-card { transition: 125ms ease-in-out; transform: rotateX(10deg) rotateY(-5deg) rotateZ(0deg); }
+.tr-8:hover ~ .kenny-card { transition: 125ms ease-in-out; transform: rotateX(10deg) rotateY(0deg) rotateZ(0deg); }
+.tr-9:hover ~ .kenny-card { transition: 125ms ease-in-out; transform: rotateX(10deg) rotateY(5deg) rotateZ(0deg); }
+.tr-10:hover ~ .kenny-card { transition: 125ms ease-in-out; transform: rotateX(10deg) rotateY(10deg) rotateZ(0deg); }
+.tr-11:hover ~ .kenny-card { transition: 125ms ease-in-out; transform: rotateX(0deg) rotateY(-10deg) rotateZ(0deg); }
+.tr-12:hover ~ .kenny-card { transition: 125ms ease-in-out; transform: rotateX(0deg) rotateY(-5deg) rotateZ(0deg); }
+.tr-13:hover ~ .kenny-card { transition: 125ms ease-in-out; transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
+.tr-14:hover ~ .kenny-card { transition: 125ms ease-in-out; transform: rotateX(0deg) rotateY(5deg) rotateZ(0deg); }
+.tr-15:hover ~ .kenny-card { transition: 125ms ease-in-out; transform: rotateX(0deg) rotateY(10deg) rotateZ(0deg); }
+.tr-16:hover ~ .kenny-card { transition: 125ms ease-in-out; transform: rotateX(-10deg) rotateY(-10deg) rotateZ(0deg); }
+.tr-17:hover ~ .kenny-card { transition: 125ms ease-in-out; transform: rotateX(-10deg) rotateY(-5deg) rotateZ(0deg); }
+.tr-18:hover ~ .kenny-card { transition: 125ms ease-in-out; transform: rotateX(-10deg) rotateY(0deg) rotateZ(0deg); }
+.tr-19:hover ~ .kenny-card { transition: 125ms ease-in-out; transform: rotateX(-10deg) rotateY(5deg) rotateZ(0deg); }
+.tr-20:hover ~ .kenny-card { transition: 125ms ease-in-out; transform: rotateX(-10deg) rotateY(10deg) rotateZ(0deg); }
+.tr-21:hover ~ .kenny-card { transition: 125ms ease-in-out; transform: rotateX(-20deg) rotateY(-10deg) rotateZ(0deg); }
+.tr-22:hover ~ .kenny-card { transition: 125ms ease-in-out; transform: rotateX(-20deg) rotateY(-5deg) rotateZ(0deg); }
+.tr-23:hover ~ .kenny-card { transition: 125ms ease-in-out; transform: rotateX(-20deg) rotateY(0deg) rotateZ(0deg); }
+.tr-24:hover ~ .kenny-card { transition: 125ms ease-in-out; transform: rotateX(-20deg) rotateY(5deg) rotateZ(0deg); }
+.tr-25:hover ~ .kenny-card { transition: 125ms ease-in-out; transform: rotateX(-20deg) rotateY(10deg) rotateZ(0deg); }

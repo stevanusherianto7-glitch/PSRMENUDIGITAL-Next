@@ -1,0 +1,9 @@
+admin123==>[REDACTED_ADMIN_PASSWORD]
+waiter123==>[REDACTED_WAITER_PASSWORD]
+dapur123==>[REDACTED_KITCHEN_PASSWORD]
+Pawon Salam==>Kedai Elvera 57
+pawon salam==>kedai elvera 57
+pawon-salam==>kedai-elvera-57
+logo-pawon-salam.png==>logo-kedai-elvera-57.png
+com.pawonsalam.pos==>com.kedaielvera57.pos
+com/pawonsalam/pos==>com/kedaielvera57/pos

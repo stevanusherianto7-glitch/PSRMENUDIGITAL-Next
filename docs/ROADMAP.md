@@ -21,7 +21,7 @@
 - [x] Routes `/api/v1/*` + upload proxy Cloudinary (`UploadController`).
 - [x] `docker-compose.yml` (app + postgres + redis) + `Dockerfile` + `.env.example`.
 - [ ] `composer install` + `php artisan migrate` di VPS (mesin dev ini tidak ada composer).
-- [ ] Auth: ganti `AuthController` stub → Socialite Google OAuth owner (sesuai arah).
+- [x] Auth: `AuthController` Google OAuth via Socialite (redirect + callback, auto-create user, issue Sanctum token). Menunggu `GOOGLE_CLIENT_ID/SECRET` di VPS.
 
 ## Fase 2 — API & Auth (SELESAI endpoint inti)
 - [x] Endpoint menu (`/api/v1/menus`, `/sync`).

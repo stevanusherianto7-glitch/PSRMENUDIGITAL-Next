@@ -230,8 +230,8 @@ dari `localStorage['sanctum_token']`. `isBackendConfigured()` → true bila `VIT
 - ✅ `QrMenuModule` (event gallery CRUD) → `repository/event.ts` (ganti `supabase.from('event_gallery')`).
 - ✅ `GuestMenuPage` menu load → `repository/menu.ts`; order submit/update/delete → `api.ts` (`/api/v1/orders`).
 - ✅ `useAdminState` (admin POS): `loadTransactions` → `fetchTransactions()` (`/api/v1/transactions`); `initSupabase` ping → `isBackendConfigured()`.
-- ✅ `api.ts`: `createOrder/fetchOrders/updateOrder/deleteOrder/fetchTransactions` → HTTP Laravel + fallback localStorage (hapus `supabase.from` orders/transactions).
-- ⏳ `fetchPaginatedOrders` (AdminPage/OrdersModule) masih Supabase → tahap berikutnya.
+- ✅ `api.ts`: `createOrder/fetchOrders/updateOrder/deleteOrder/fetchTransactions/fetchPaginatedOrders` → HTTP Laravel + fallback localStorage (hapus `supabase.from` orders/transactions).
+- ✅ Google OAuth: backend `/api/v1/auth/google` + `/auth/google/callback` (Socialite, auto-create user, Sanctum token).
 - ⏳ `StoreContext` meja realtime Supabase → polling (sudah non-aktif channel).
 
 > Backend Laravel SUNGGUHAN ada di `backend/` (Laravel 11 + Sanctum + Cloudinary proxy).

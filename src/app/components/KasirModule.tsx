@@ -23,6 +23,7 @@ import { PromoModal } from "./PromoModal";
 import { PrinterSettingsModal } from "./PrinterSettingsModal";
 import { GuestReceipt, KitchenReceipt, ClosingReceipt } from "./ReceiptTemplates";
 import { printService } from "../../utils/printService";
+import { menuImageUrl } from "../../lib/cloudinary";
 import { toast } from "sonner";
 import type { MenuItem, CartItem, Transaction, Promo, TableData, Order, OrderStatus } from "../types";
 
@@ -638,10 +639,12 @@ export function KasirModule({ menuItems, onTransaction, promos, tables, orders, 
                     <div className="w-12 h-12 rounded-2xl overflow-hidden flex-shrink-0 border border-[#dfd3c3]">
                       <img
                         src={
-                          (menuItems.find(m => m.id === c.id) || 
-                           menuItems.find(m => m.name.toLowerCase() === c.name.toLowerCase()))?.image || 
-                          c.image || 
-                          APP_LOGO
+                          menuImageUrl(
+                            (menuItems.find(m => m.id === c.id) || 
+                             menuItems.find(m => m.name.toLowerCase() === c.name.toLowerCase()))?.image || 
+                            c.image || 
+                            APP_LOGO
+                          )
                         }
                         alt={c.name}
                         loading="lazy"

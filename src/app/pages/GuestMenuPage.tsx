@@ -16,6 +16,7 @@ import { supabase } from "../../lib/supabase";
 import { createOrder, fetchOrders, deleteOrder, updateOrder, getOrderDuration } from "../api";
 import type { MenuItem, CartItem, Order, OrderMode } from "../types";
 import { ErrorBoundary } from "../components/ErrorBoundary";
+import { OptimizedImage } from "../components/OptimizedImage";
 import { useThemeStore } from "../hooks/useThemeStore";
 
 type View = "menu" | "cart" | "status" | "gallery" | "booking";
@@ -63,35 +64,6 @@ const EVENT_PHOTOS: EventPhoto[] = [
     description: "Keseruan akhir pekan di area taman outdoor menikmati alunan live acoustic music ditemani hidangan santai bersama sahabat."
   }
 ];
-
-function OptimizedImage({ src, alt, className, width = 400 }: { src: string; alt: string; className?: string; width?: number }) {
-  const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState(false);
-  
-  // High-end warm-beige themed gradient placeholder
-  const placeholderSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23ece3d5"/><circle cx="50" cy="50" r="20" fill="%23a76d33" opacity="0.15"/></svg>`;
-
-  const imageUrl = src;
-
-  return (
-    <div className="relative w-full h-full overflow-hidden bg-[#ece3d5] dark:bg-[#23120b]">
-      {!loaded && !error && (
-        <div className="absolute inset-0 bg-gradient-to-r from-[#ece3d5]/50 via-[#a76d33]/10 to-[#ece3d5]/50 animate-pulse z-10" />
-      )}
-      <img
-        src={error ? placeholderSvg : imageUrl}
-        alt={alt}
-        loading="lazy"
-        decoding="async"
-        onLoad={() => setLoaded(true)}
-        onError={() => setError(true)}
-        className={`${className} transition-all duration-700 ease-out ${
-          loaded ? "opacity-100 scale-100 blur-0" : "opacity-30 scale-95 blur-sm"
-        }`}
-      />
-    </div>
-  );
-}
 
 export default function GuestMenuPage() {
   const { isDark } = useThemeStore();

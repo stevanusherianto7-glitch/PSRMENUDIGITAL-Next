@@ -59,7 +59,7 @@ Aplikasi ini bukan MVP biasa. Setiap UI harus memenuhi standar premium:
 
 Identitas Brand (Wajib): Selalu pertahankan logo brand dan apapun yang berkaitan dengan nama brand ('Kedai Elvera 57' / 'Kedai Elvera 57') dalam setiap rancangan antarmuka, komponen POS, setruk pesanan, maupun material cetak lainnya.
 
-Warna & Tipografi: Gunakan palet warna harmonis (hindari warna dasar murni seperti merah/hijau/biru murni). Gunakan Google Fonts (Inter/Outfit) sebagai standar visual.
+Warna & Tipografi: Gunakan palet warna brand Elvera (ungu→magenta→merah→oranye→emas, lihat `docs/TYPOGRAPHY.md`). Font utama = **Poppins** (bukan Inter/Outfit). Hindari warna dasar murni (merah/hijau/biru murni).
 
 Animasi: Implementasikan micro-animations (hover effects, smooth transitions) pada tombol, kartu, dan navigasi.
 
@@ -70,9 +70,9 @@ Loading State: Gunakan Skeleton Loading yang dirancang indah sebagai pengganti s
 5. Integritas Data & Keamanan (Zero-Data-Loss Policy)
 Selalu patuhi skema database yang sudah dinormalisasi (FK ID, UUID).
 
-Pastikan Row Level Security (RLS) dan injeksi environment variables (.env) dipertimbangkan dalam setiap fitur.
+Pastikan Row Level Security (RLS) Supabase aktif di tiap tabel dan injeksi environment variables (.env) dipertimbangkan dalam setiap fitur.
 
-Proteksi Database Produksi: Perubahan di database (termasuk seeding atau cleanup di file test cases seperti admin.spec.ts atau staff.spec.ts) tidak boleh menyentuh URL production. Selalu gunakan URL dinamis (VITE_SUPABASE_URL) untuk fallback ke 127.0.0.1:54321 (Local DB) menggunakan Service Role Key bawaan local CLI.
+Proteksi Database Produksi: Perubahan di database (termasuk seeding atau cleanup di file test cases seperti admin.spec.ts atau staff.spec.ts) tidak boleh menyentuh URL production. Selalu gunakan URL dinamis (VITE_SUPABASE_URL) untuk fallback ke 127.0.0.1:54321 (Local DB) menggunakan Service Role Key bawaan local CLI. **Service Role Key tidak boleh diekspos ke frontend/build.**
 
 6. Skenario Rollback & Pemulihan (Rollback Plan)
 Setiap kali melakukan refactor, pembaruan pipeline GitHub Actions, atau perbaikan kode kritikal:
@@ -84,15 +84,20 @@ Wajib: Selalu commit perubahan secara bertahap (atomic commits) agar mudah dilac
 7. Standar Eksekusi, Pengujian & Pipeline CI (Wajib)
 Setiap selesai melakukan perubahan kode, kamu selalu wajib menjalankan maintenance commands untuk memastikan kualitas:
 
-npm run clean, npm run format, npm run lint, dan npm test.
+npm run lint, dan npm test (unit Jest).
 
-Untuk pengujian lanjutan yang memvalidasi Circular Flow (Guest ➔ Kitchen ➔ Waiter ➔ Cashier), selalu patuhi standar Hybrid CI Pipeline (Opsi A: Mock/Offline & Opsi B: Supabase CLI/Docker) menggunakan commands berikut:
+Untuk pengujian lanjutan yang memvalidasi Circular Flow (Guest ➔ Kitchen ➔ Waiter ➔ Cashier), selalu patuhi standar Hybrid CI Pipeline menggunakan commands berikut:
 
-Untuk Jest: npm run test:integration
+Untuk Jest integration: npm run test:integration
 
-Untuk Playwright: npm run test:e2e:playwright (Wajib terhubung dengan dotenv untuk memuat variabel lokal. Jika test gagal di GitHub Actions CI, manfaatkan Trace & Screenshot Artifacts untuk melacak UI layout shifts atau elemen stuck).
+Untuk Playwright: npm run test:e2e:playwright (jalankan dengan dotenv untuk memuat variabel lokal; manfaatkan Trace & Screenshot Artifacts untuk melacak UI layout shifts atau elemen stuck).
 
-Untuk Cypress: $env:CYPRESS_VERIFY_TIMEOUT=120000; npm run test:e2e:cypress (Pastikan berjalan menggunakan port paling strict yaitu 5656 dan viewport desktop 1280x800).
+Untuk Cypress: npm run test:e2e:cypress (pastikan berjalan menggunakan port paling strict yaitu 5656 dan viewport desktop 1280x800).
+
+8. Type Safety & Naming Convention (Wajib — seragam dengan docs/GOLDEN-RULES.md)
+- **Dilarang `any`** di kode baru (`src/`): gunakan interface/type alias/generics/`unknown`+validasi. ESLint `@typescript-eslint/no-explicit-any: "error"`.
+- **Naming**: `snake_case` untuk kolom Supabase/JSON, `camelCase` untuk variabel/props TS, `PascalCase` untuk tipe/kelas/komponen.
+- **Aksesibilitas (WCAG AA)**: kontras teks ≥ 4.5:1 (large ≥ 3:1), font ≥ 12px, line-height ≥ 1.4×, touch target ≥ 44×44px.
 
 🚀 Proaktifitas & Kecerdasan Tambahan
 Bug Hunter (Kritikal): Jika mendeteksi potensi bug, konfigurasi yang salah (terutama kredensial Production/Supabase URL yang di-hardcode ke file .spec.ts atau .cy.js), atau inefisiensi, berikan peringatan keras dan usulkan refactoring dengan environment variable dinamis sebelum mengeksekusi instruksi user.
@@ -103,7 +108,5 @@ Performance First: Selalu cari cara untuk mempercepat waktu respon (optimasi sca
 
 Context Awareness: Selalu ingat efek domino. Perubahan di modul Admin/Kasir harus dicek dampaknya pada modul Dapur (Kitchen), Waiter, dan Guest secara sinkron.
 
-💬 Penutup Wajib
-Di akhir setiap respon, kamu wajib bertanya dengan format kalimat persis seperti ini:
-
-"Apakah Anda ingin saya mulai menulis kode untuk opsi [X], atau ada bagian arsitektur yang ingin didiskusikan lebih lanjut?"
+💬 Penutup
+Di akhir setiap respon, tanyakan apakah pengguna ingin melanjutkan ke eksekusi kode untuk opsi yang diusulkan, atau ada bagian arsitektur yang ingin didiskusikan lebih lanjut.

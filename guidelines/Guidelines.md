@@ -1,61 +1,34 @@
-**Add your own guidelines here**
-<!--
+# Project Guidelines — PSRMENUDIGITAL (Kedai Elvera 57 POS)
 
-System Guidelines
+Panduan ini untuk AI/developer yang mengerjakan repositori ini. Merujuk ke `docs/GOLDEN-RULES.md`
+dan `docs/TYPOGRAPHY.md` untuk detail lengkap.
 
-Use this file to provide the AI with rules and guidelines you want it to follow.
-This template outlines a few examples of things you can add. You can add your own sections and format it to suit your needs
+## General Guidelines
 
-TIP: More context isn't always better. It can confuse the LLM. Try and add the most important rules you need
+- **Type safety:** Jangan gunakan `any` di kode baru. Gunakan interface/type alias/generics/`unknown`+validasi.
+- **Naming:** `snake_case` untuk kolom Supabase/JSON, `camelCase` untuk variabel/props, `PascalCase` untuk tipe/kelas/komponen.
+- **Responsive & layout:** Prefer flexbox/grid yang responsif. Hindari absolute positioning kecuali perlu. Mobile-first (POS utama 320–768px).
+- **File size:** 1 komponen 1 file. Page ≤ 200 baris, sub-komponen ≤ 150, hook ≤ 100. Refactor god-component ke atomic design.
+- **State:** `react-hook-form` + `zod` untuk form; Context (`StoreContext`) untuk global state.
+- **Merge class:** Gunakan `cn()` (clsx + tailwind-merge) untuk className kondisional.
 
-# General guidelines
+## Design System Guidelines (Brand Elvera 57)
 
-Any general rules you want the AI to follow.
-For example:
+- **Font:** Poppins sebagai font utama (jangan ganti ke Inter/Outfit secara massal).
+- **Warna brand:** palet ungu→magenta→merah→oranye→emas. Hindari warna dasar murni untuk elemen utama.
+- **Type scale:** kelipatan 4px (Display 32, H1 24, H2 20, Subtitle 16, Body 14, Caption 12). Lihat `docs/TYPOGRAPHY.md`.
+- **Kontras:** teks ≥ 4.5:1 (large ≥ 3:1). Touch target ≥ 44×44px. CLS < 0.1.
+- **Loading:** Skeleton loading, bukan spinner standar.
+- **Micro-animation:** hover/transisi halus pada tombol, kartu, navigasi.
 
-* Only use absolute positioning when necessary. Opt for responsive and well structured layouts that use flexbox and grid by default
-* Refactor code as you go to keep code clean
-* Keep file sizes small and put helper functions and components in their own files.
+## Security & Robustness
 
---------------
+- RLS Supabase aktif di tiap tabel; validasi input (zod) di client + RLS di server.
+- Jangan hardcode Service Role Key / URL production di test spec — gunakan env dinamis (`VITE_SUPABASE_URL`).
+- Offline fallback wajib: localStorage/IndexedDB + retry exponential backoff. Aplikasi tidak boleh crash saat Supabase timeout.
 
-# Design system guidelines
-Rules for how the AI should make generations look like your company's design system
+## References
 
-Additionally, if you select a design system to use in the prompt box, you can reference
-your design system's components, tokens, variables and components.
-For example:
-
-* Use a base font-size of 14px
-* Date formats should always be in the format “Jun 10”
-* The bottom toolbar should only ever have a maximum of 4 items
-* Never use the floating action button with the bottom toolbar
-* Chips should always come in sets of 3 or more
-* Don't use a dropdown if there are 2 or fewer options
-
-You can also create sub sections and add more specific details
-For example:
-
-
-## Button
-The Button component is a fundamental interactive element in our design system, designed to trigger actions or navigate
-users through the application. It provides visual feedback and clear affordances to enhance user experience.
-
-### Usage
-Buttons should be used for important actions that users need to take, such as form submissions, confirming choices,
-or initiating processes. They communicate interactivity and should have clear, action-oriented labels.
-
-### Variants
-* Primary Button
-  * Purpose : Used for the main action in a section or page
-  * Visual Style : Bold, filled with the primary brand color
-  * Usage : One primary button per section to guide users toward the most important action
-* Secondary Button
-  * Purpose : Used for alternative or supporting actions
-  * Visual Style : Outlined with the primary color, transparent background
-  * Usage : Can appear alongside a primary button for less important actions
-* Tertiary Button
-  * Purpose : Used for the least important actions
-  * Visual Style : Text-only with no border, using primary color
-  * Usage : For actions that should be available but not emphasized
--->
+- `docs/GOLDEN-RULES.md` — aturan emas & Definition of Done.
+- `docs/TYPOGRAPHY.md` — tipografi & warna brand.
+- `PANDUAN_ROLE.md` — RBAC (role valid: admin, manager, owner, waiter, kitchen).

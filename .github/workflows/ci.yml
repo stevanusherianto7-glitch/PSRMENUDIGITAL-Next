@@ -17,11 +17,12 @@ on:
   pull_request:
     branches: [master, main, develop]
 
-# Global env — Kedai Elvera 57 Supabase credentials
+# Global env — Kedai Elvera 57 (legacy Supabase; backend sesungguhnya Laravel, lihat docs/ARCHITECTURE.md)
+# Nilai asli diisi via GitHub repo Secrets (Settings > Secrets), BUKAN di-commit ke repo.
 env:
-  VITE_SUPABASE_URL: "https://pbitlwrgainrcippjuwd.supabase.co"
-  VITE_SUPABASE_ANON_KEY: "sb_publishable_4fJEkMwBlAmMjBez-6KgXA_eAXRMdsJ"
-  VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_4fJEkMwBlAmMjBez-6KgXA_eAXRMdsJ"
+  VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+  VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
   NODE_ENV: "test"
 
 jobs:

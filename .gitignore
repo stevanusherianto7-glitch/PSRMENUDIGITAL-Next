@@ -69,3 +69,10 @@ e2e_secrets.json
 
 .vercel
 .env*
+
+# Dev scratch scripts (berisi legacy Supabase creds, bukan source app)
+scratch/
+
+# Root dev test scripts (legacy Supabase, bukan source app)
+test_insert.cjs
+test_bundle.cjs

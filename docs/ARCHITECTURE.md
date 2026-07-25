@@ -228,15 +228,15 @@ dari `localStorage['sanctum_token']`. `isBackendConfigured()` → true bila `VIT
 
 **Status wiring (2026-07-25):**
 - ✅ `QrMenuModule` (event gallery CRUD) → `repository/event.ts` (ganti `supabase.from('event_gallery')`).
-- ⏳ `MenuManagement` / `GuestMenuPage` (menu) → `repository/menu.ts` (belum di-wire).
-- ⏳ `GuestMenuPage` / `OrdersModule` (order) → `repository/order.ts` (belum di-wire).
-- ⏳ `StoreContext` / `useAdminState` (admin POS meja/transactions) → tahap berikutnya.
+- ✅ `GuestMenuPage` menu load → `repository/menu.ts`; order submit/update/delete → `api.ts` (`/api/v1/orders`).
+- ✅ `useAdminState` (admin POS): `loadTransactions` → `fetchTransactions()` (`/api/v1/transactions`); `initSupabase` ping → `isBackendConfigured()`.
+- ✅ `api.ts`: `createOrder/fetchOrders/updateOrder/deleteOrder/fetchTransactions` → HTTP Laravel + fallback localStorage (hapus `supabase.from` orders/transactions).
+- ⏳ `fetchPaginatedOrders` (AdminPage/OrdersModule) masih Supabase → tahap berikutnya.
+- ⏳ `StoreContext` meja realtime Supabase → polling (sudah non-aktif channel).
 
-Bukti real-mode (integration test buka network ke `server/restStub.js`):
-`src/__tests__/integration/repository.realmode.test.ts` ✅ PASS (create→fetch→delete menu/event/order).
-
+> Backend Laravel SUNGGUHAN ada di `backend/` (Laravel 11 + Sanctum + Cloudinary proxy).
+> Jalankan: `cd backend && composer install && cp .env.example .env && php artisan key:generate && php artisan migrate && docker-compose up -d`.
 > `src/lib/supabase.ts` **dibiarkan** (legacy) sampai seluruh modul di-wire ke repository.
-> Jangan hapus sebelum Fase 3 penuh selesai — app masih bergantung padanya untuk admin POS.
 
 ## 5. Realtime (Opsional)
 

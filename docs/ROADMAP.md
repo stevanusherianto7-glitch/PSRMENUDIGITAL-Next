@@ -15,21 +15,21 @@
 - [x] Fix `PANDUAN_ROLE.md` (role `admin|manager|owner|waiter|kitchen`).
 - [x] Integrasi Cloudinary untuk foto menu (dokumentasi).
 
-## Fase 1 — Setup Backend Laravel (Target)
+## Fase 1 — Setup Backend Laravel (SELESAI struktur, 2026-07-25)
+- [x] `backend/` Laravel 11 + PostgreSQL + Redis + Sanctum + Cloudinary SDK proxy.
+- [x] Migrations: `menu_items`, `orders`, `event_gallery`, `transactions`.
+- [x] Routes `/api/v1/*` + upload proxy Cloudinary (`UploadController`).
+- [x] `docker-compose.yml` (app + postgres + redis) + `Dockerfile` + `.env.example`.
+- [ ] `composer install` + `php artisan migrate` di VPS (mesin dev ini tidak ada composer).
+- [ ] Auth: ganti `AuthController` stub → Socialite Google OAuth owner (sesuai arah).
 
-- [ ] Inisialisasi proyek Laravel 13 + PostgreSQL + Redis.
-- [ ] Sanctum + Socialite (Google OAuth owner).
-- [ ] Migrasi skema dari `src/lib/schema.sql` (lihat `ARCHITECTURE.md` §2).
-- [ ] Tenant scope (multi-tenant, `slug` global-unique).
-- [ ] Cloudinary SDK server-side (`CLOUDINARY_URL`).
-- [ ] Seeder awal (outlet default, role default `waiter`).
-
-## Fase 2 — API & Auth
-
-- [ ] Endpoint auth (`/api/v1/auth/*`, `/oauth/google`).
-- [ ] Endpoint menu + upload foto Cloudinary (`/api/v1/menus`, `/{id}/photo`).
-- [ ] Endpoint order/transaksi/meja (`/api/v1/orders`, `/payments`, `/tables`).
-- [ ] Endpoint modul (inventaris, SDM, promo, laporan, dashboard).
+## Fase 2 — API & Auth (SELESAI endpoint inti)
+- [x] Endpoint menu (`/api/v1/menus`, `/sync`).
+- [x] Endpoint event-gallery (`/api/v1/event-gallery`).
+- [x] Endpoint orders (`/api/v1/orders`) + idempotency_key (cegah duplikat).
+- [x] Endpoint transactions (`/api/v1/transactions`).
+- [x] Upload proxy Cloudinary (`/api/menu/upload`, `/api/event-gallery/photo`).
+- [ ] Test otorisasi Sanctum (ganti `security_rls.test.tsx` → test token).
 - [ ] Test otorisasi (ganti `security_rls.test.tsx`).
 
 ## Fase 3 — Frontend ke Laravel

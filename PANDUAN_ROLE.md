@@ -2,6 +2,8 @@
 
 Dokumen ini menjelaskan cara mengubah hak akses (*Role*) karyawan setelah mereka mendaftar menggunakan Email atau Gmail (Google Auth).
 
+> ⚠️ **CATATAN ARSITEKTUR (2026-07-25):** Dokumen ini menggambarkan cara operasional pada **clone saat ini yang masih memakai Supabase**. Pada arsitektur **target (Laravel 13 + PostgreSQL)**, manajemen role dilakukan lewat backend (tabel `profiles`/`users` dikelola via Laravel + admin panel / API), bukan Supabase Table Editor. Langkah di bawah tetap valid untuk clone Supabase yang ada sekarang.
+
 ---
 
 ## ⚠️ Aturan Penting (Harap Dibaca)

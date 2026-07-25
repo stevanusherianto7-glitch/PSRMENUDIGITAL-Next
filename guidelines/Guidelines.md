@@ -6,7 +6,7 @@ dan `docs/TYPOGRAPHY.md` untuk detail lengkap.
 ## General Guidelines
 
 - **Type safety:** Jangan gunakan `any` di kode baru. Gunakan interface/type alias/generics/`unknown`+validasi.
-- **Naming:** `snake_case` untuk kolom Supabase/JSON, `camelCase` untuk variabel/props, `PascalCase` untuk tipe/kelas/komponen.
+- **Naming:** `snake_case` untuk kolom DB/JSON, `camelCase` untuk variabel/props, `PascalCase` untuk tipe/kelas/komponen.
 - **Responsive & layout:** Prefer flexbox/grid yang responsif. Hindari absolute positioning kecuali perlu. Mobile-first (POS utama 320–768px).
 - **File size:** 1 komponen 1 file. Page ≤ 200 baris, sub-komponen ≤ 150, hook ≤ 100. Refactor god-component ke atomic design.
 - **State:** `react-hook-form` + `zod` untuk form; Context (`StoreContext`) untuk global state.
@@ -23,9 +23,9 @@ dan `docs/TYPOGRAPHY.md` untuk detail lengkap.
 
 ## Security & Robustness
 
-- RLS Supabase aktif di tiap tabel; validasi input (zod) di client + RLS di server.
-- Jangan hardcode Service Role Key / URL production di test spec — gunakan env dinamis (`VITE_SUPABASE_URL`).
-- Offline fallback wajib: localStorage/IndexedDB + retry exponential backoff. Aplikasi tidak boleh crash saat Supabase timeout.
+- Otorisasi & isolasi data dienforced di backend (Laravel policies / tenant scope); validasi input (zod) di client + validasi ulang di server.
+- Jangan hardcode secret backend / URL production di test spec — gunakan env dinamis (`VITE_API_URL`).
+- Offline fallback wajib: localStorage/IndexedDB + retry exponential backoff. Aplikasi tidak boleh crash saat backend timeout.
 
 ## References
 

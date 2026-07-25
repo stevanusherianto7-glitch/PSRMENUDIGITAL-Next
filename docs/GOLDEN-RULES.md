@@ -2,9 +2,9 @@
 
 > Diseragamkan dari `Restoku_Refactored/Restoku-Next/docs/GOLDEN-RULES.md`, `TECH-STACK.md`,
 > `TESTING.md`, `prompts-frontend.md`, `PRD.md`, `WORK-PLAN.md`.
-> **Disesuaikan dengan stack NYATA repo ini**: React 18 + TypeScript + Vite + Tailwind + Supabase
-> + Capacitor (Android) + **Jest** (bukan Vitest) + Playwright + Cypress.
-> **Tidak mengubah UI/layout** — hanya panduan penulisan kode ke depan.
+> **Disesuaikan dengan arah stack**: Frontend React 18 + TypeScript + Vite + Tailwind + Capacitor (Android);
+> backend target = **Laravel 13 + PostgreSQL + Redis** (seragam Restoku-Next). Testing = **Jest** (bukan Vitest) + Playwright + Cypress.
+> **Supabase TIDAK dipakai** sebagai backend. **Tidak mengubah UI/layout** — hanya panduan penulisan kode ke depan.
 
 ---
 
@@ -47,7 +47,7 @@ Kode existing yang masih pakai `any` boleh bertahap di-migrasi; kode BARU wajib 
 | Kolom Supabase / JSON | `snake_case` (contoh: `created_at`, `order_id`) |
 | Variabel TS / props | `camelCase` (contoh: `orderId`, `isLoading`) |
 | Tipe / interface / class / komponen | `PascalCase` (contoh: `MenuItem`, `OrderStatus`, `KasirModule`) |
-| Konstanta environment | `UPPER_SNAKE_CASE` (contoh: `VITE_SUPABASE_URL`) |
+| Konstanta environment | `UPPER_SNAKE_CASE` (contoh: `VITE_API_URL`) |
 
 ---
 
@@ -106,14 +106,14 @@ Lihat `docs/TYPOGRAPHY.md` untuk detail. Ringkas:
 
 ## 6. Security & Secret Hygiene
 
-- **RLS Supabase aktif** di tiap tabel (`security_rls.test.tsx` menguji ini). Jangan nonaktifkan RLS di production.
-- **Validasi input**: selalu validasi di client (`zod`) DAN andalkan RLS/validasi DB di server.
+- **Isolasi multi-tenant & otorisasi** dienforced di backend (Laravel policies / tenant scope), bukan di client. Test `security_rls.test.tsx` (legacy Supabase) akan diganti test otorisasi backend.
+- **Validasi input**: selalu validasi di client (`zod`) DAN validasi ulang di backend (Laravel Form Request / service layer).
 - **Hindari XSS**: jangan `dangerouslySetInnerHTML` dengan data user tanpa sanitasi.
 - **Secrets**:
   - `.env` sudah di-gitignore — jangan commit.
-  - Publishable key (`sb_publishable_...`) **boleh** di client (`VITE_SUPABASE_PUBLISHABLE_KEY`).
-  - **Service Role Key HARUS tetap di server/secret** — jangan pernah ekspos ke frontend/build.
-  - Test spec (`.spec.ts`/`.cy.ts`) **jangan hardcode** URL production atau key — gunakan env dinamis (`VITE_SUPABASE_URL` fallback ke `127.0.0.1:54321` local).
+  - API token (Sanctum/Bearer) disimpan di storage aman (Capacitor SecureStorage / httpOnly cookie), bukan di JS global.
+  - **Secret backend (DB password, APP_KEY, API key pihak ke-3) HARUS tetap di server** — jangan pernah ekspos ke frontend/build.
+  - Test spec (`.spec.ts`/`.cy.ts`) **jangan hardcode** URL production atau key — gunakan env dinamis (`VITE_API_URL` fallback ke `http://localhost:8080` / `127.0.0.1:54321` local).
 - **HTTPS everywhere** di production (Vercel/Android).
 
 ---
@@ -121,7 +121,7 @@ Lihat `docs/TYPOGRAPHY.md` untuk detail. Ringkas:
 ## 7. Robustness & Offline (Pertahankan aturan lama)
 
 Internet warung tidak stabil — aplikasi tidak boleh crash (layar putih).
-- Selalu pasang fallback cache lokal (localStorage/IndexedDB) jika Supabase timeout/schema error.
+- Selalu pasang fallback cache lokal (localStorage/IndexedDB) jika backend timeout/schema error.
 - Conflict resolution: Last-Write-Wins (LWW) untuk profil/staf; merge state untuk order/meja.
 - Saat koneksi pulih: sync delta (hanya data berubah).
 - Error handling: pesan jelas + retry otomatis dengan exponential backoff.
@@ -151,4 +151,4 @@ Internet warung tidak stabil — aplikasi tidak boleh crash (layar putih).
 
 ---
 
-*Sumber: `Restoku_Refactored/Restoku-Next/docs/{GOLDEN-RULES,TECH-STACK,TESTING,prompts-frontend,PRD,WORK-PLAN}.md` — disesuaikan stack Jest+Supabase+Capacitor repo ini.*
+*Sumber: `Restoku_Refactored/Restoku-Next/docs/{GOLDEN-RULES,TECH-STACK,TESTING,prompts-frontend,PRD,WORK-PLAN}.md` — disesuaikan stack Jest+Laravel+Capacitor repo ini.*

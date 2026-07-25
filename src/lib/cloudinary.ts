@@ -49,10 +49,11 @@ function isAbsoluteUrl(value: string): boolean {
 }
 
 function isCloudinaryPublicId(value: string): boolean {
-  // public_id Cloudinary: tidak mengandung "://", tidak mengandung "/", tidak diawali "/"
-  // atau "./", dan tidak mengandung kata "supabase".
-  if (value.includes('/') || value.startsWith('.') || value.startsWith('/')) return false
-  return !isAbsoluteUrl(value) && !/supabase/i.test(value)
+  // public_id Cloudinary: boleh mengandung "/" sebagai folder separator (menu/xxx),
+  // tapi TIDAK boleh: diawali "/" atau "./" (path relatif dari root), mengandung "://",
+  // atau mengandung kata "supabase".
+  if (value.startsWith('/') || value.startsWith('./') || value.includes('://')) return false
+  return !/supabase/i.test(value)
 }
 
 /**

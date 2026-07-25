@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { PhotoUploader } from "./PhotoUploader";
+import { EventPhotoUploader } from "./EventPhotoUploader";
 import { 
   Printer, Download, ExternalLink, QrCode, 
   Edit2, Trash2, Plus, Sparkles, Calendar, 
@@ -642,11 +643,10 @@ export function QrMenuModule({ tables }: QrMenuModuleProps) {
               </div>
 
               <div className="space-y-2">
-                <PhotoUploader 
+                <EventPhotoUploader 
                   value={formImage} 
                   onChange={setFormImage} 
-                  bucket="menu-photos" 
-                  folder="events" 
+                  title={formTitle}
                   label="Gambar Acara" 
                 />
                 

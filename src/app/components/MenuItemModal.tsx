@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { X, ChevronDown, Tag, RefreshCw, Trash2, Save } from "lucide-react";
-import { PhotoUploader } from "./PhotoUploader";
+import { MenuPhotoUploader } from "./MenuPhotoUploader";
 import type { MenuItem } from "../types";
 
 interface MenuItemModalProps {
@@ -84,8 +84,9 @@ export function MenuItemModal({
         {/* Body */}
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
           {/* Photo */}
-          <PhotoUploader
+          <MenuPhotoUploader
             value={form.image}
+            name={form.name}
             onChange={(url) => setField("image", url)}
           />
 

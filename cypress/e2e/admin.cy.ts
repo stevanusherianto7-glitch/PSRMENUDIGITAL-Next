@@ -8,7 +8,7 @@ describe('Kedai Elvera 57 - Admin & POS Kasir E2E Operations (Cypress Mocked-API
 
   it('should successfully log in, navigate to POS Kasir, select an active served order, and process transaction to completion', () => {
     // 2. Mock API endpoints for Supabase/Laravel data loading in Admin Panel
-    cy.intercept('GET', '**/*orders*', {
+    cy.intercept('GET', /\/(api|rest)\/v1\/orders/, {
       statusCode: 200,
       body: [
         {
@@ -27,47 +27,47 @@ describe('Kedai Elvera 57 - Admin & POS Kasir E2E Operations (Cypress Mocked-API
       ]
     }).as('fetchOrders');
 
-    cy.intercept('GET', '**/*meja*', {
+    cy.intercept('GET', /\/(api|rest)\/v1\/meja/, {
       statusCode: 200,
       body: [
         { id: TABLE_ID, seat: 2, status: 'available' }
       ]
     }).as('fetchMeja');
 
-    cy.intercept('GET', '**/*menu_items*', {
+    cy.intercept('GET', /\/(api|rest)\/v1\/menu_items/, {
       statusCode: 200,
       body: [
         { id: 'menu_001', name: 'Nasi Goreng Jawa', price: 25000, category: 'Makanan', available: true }
       ]
     }).as('fetchMenuItems');
 
-    cy.intercept('GET', '**/*inventory*', {
-      statusCode: 200,
-      body: []
-    }).as('fetchInventory');
-
-    cy.intercept('GET', '**/*inventory_logs*', {
+    cy.intercept('GET', /\/(api|rest)\/v1\/inventory_logs/, {
       statusCode: 200,
       body: []
     }).as('fetchInventoryLogs');
 
-    cy.intercept('GET', '**/*transactions*', {
+    cy.intercept('GET', /\/(api|rest)\/v1\/inventory/, {
+      statusCode: 200,
+      body: []
+    }).as('fetchInventory');
+
+    cy.intercept('GET', /\/(api|rest)\/v1\/transactions/, {
       statusCode: 200,
       body: []
     }).as('fetchTransactions');
 
     // 3. Mock CRUD API operations (Insert Transaction, Delete Order)
-    cy.intercept('POST', '**/*transactions*', {
-      statusCode: 201,
-      body: { success: true }
-    }).as('postTransaction');
-
-    cy.intercept('POST', '**/*transaction_items*', {
+    cy.intercept('POST', /\/(api|rest)\/v1\/transaction_items/, {
       statusCode: 201,
       body: { success: true }
     }).as('postTransactionItems');
 
-    cy.intercept('DELETE', '**/*orders*', {
+    cy.intercept('POST', /\/(api|rest)\/v1\/transactions/, {
+      statusCode: 201,
+      body: { success: true }
+    }).as('postTransaction');
+
+    cy.intercept('DELETE', /\/(api|rest)\/v1\/orders/, {
       statusCode: 200,
       body: []
     }).as('deleteOrder');
@@ -113,7 +113,7 @@ describe('Kedai Elvera 57 - Admin & POS Kasir E2E Operations (Cypress Mocked-API
     cy.contains(/Ya, Proses/i).should('be.visible');
 
     // 10. Action: Confirm transaction inside modal
-    cy.intercept('GET', '**/*orders*', {
+    cy.intercept('GET', /\/(api|rest)\/v1\/orders/, {
       statusCode: 200,
       body: [] // Simulating that the order is no longer in queue after payment deleteOrder
     }).as('fetchOrdersAfterPayment');

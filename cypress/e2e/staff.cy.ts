@@ -8,7 +8,7 @@ describe('Kedai Elvera 57 - Staff & POS Operations E2E Flow (Cypress Mocked-API)
 
   it('should successfully handle order lifecycle as Kitchen Staff (Dapur)', () => {
     // 2. Mock pending order for Kitchen (Makanan category)
-    cy.intercept('GET', '**/*orders*', {
+    cy.intercept('GET', /\/(api|rest)\/v1\/orders/, {
       statusCode: 200,
       body: [
         {
@@ -27,7 +27,7 @@ describe('Kedai Elvera 57 - Staff & POS Operations E2E Flow (Cypress Mocked-API)
     }).as('fetchPendingOrders');
 
     // 3. Mock PATCH call to update order status dynamically
-    cy.intercept('PATCH', '**/*orders*', (req) => {
+    cy.intercept('PATCH', /\/(api|rest)\/v1\/orders/, (req) => {
       const status = req.body.status || 'cooking';
       req.reply({
         statusCode: 200,
@@ -75,7 +75,7 @@ describe('Kedai Elvera 57 - Staff & POS Operations E2E Flow (Cypress Mocked-API)
 
     // Action: Click "Selesai Masak — Siap Antar"
     // (Re-mock the GET request to return an empty array, simulating the order leaving the cooking queue)
-    cy.intercept('GET', '**/*orders*', {
+    cy.intercept('GET', /\/(api|rest)\/v1\/orders/, {
       statusCode: 200,
       body: []
     }).as('fetchEmptyOrders');
@@ -89,7 +89,7 @@ describe('Kedai Elvera 57 - Staff & POS Operations E2E Flow (Cypress Mocked-API)
 
   it('should successfully handle ready orders as Waiter Staff (Pelayan)', () => {
     // 2. Mock ready order for Waiter
-    cy.intercept('GET', '**/*orders*', {
+    cy.intercept('GET', /\/(api|rest)\/v1\/orders/, {
       statusCode: 200,
       body: [
         {
@@ -108,7 +108,7 @@ describe('Kedai Elvera 57 - Staff & POS Operations E2E Flow (Cypress Mocked-API)
     }).as('fetchReadyOrders');
 
     // Mock PATCH call to served status (Sudah Disajikan)
-    cy.intercept('PATCH', '**/*orders*', {
+    cy.intercept('PATCH', /\/(api|rest)\/v1\/orders/, {
       statusCode: 200,
       body: {
         id: 'MOCK-ORDER-777',
@@ -142,7 +142,7 @@ describe('Kedai Elvera 57 - Staff & POS Operations E2E Flow (Cypress Mocked-API)
 
     // 5. Action: Click "Sudah Disajikan ke Meja A8"
     // (Re-mock the GET request to return an empty array, simulating the order leaving the ready queue)
-    cy.intercept('GET', '**/*orders*', {
+    cy.intercept('GET', /\/(api|rest)\/v1\/orders/, {
       statusCode: 200,
       body: []
     }).as('fetchEmptyReadyOrders');

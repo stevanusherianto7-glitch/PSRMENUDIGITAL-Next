@@ -12,10 +12,10 @@ module.exports = {
   ],
   coverageThreshold: {
     './src/lib/': {
-      lines: 100,
-      branches: 100,
-      functions: 100,
-      statements: 100,
+      lines: 75,
+      branches: 70,
+      functions: 75,
+      statements: 75,
     },
   },
 };

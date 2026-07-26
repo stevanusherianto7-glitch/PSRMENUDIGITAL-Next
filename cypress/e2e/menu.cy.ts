@@ -50,7 +50,11 @@ describe('Kedai Elvera 57 - Guest Menu & Ordering E2E Flow (Cypress Mocked-API)'
 
     // Clear local storage and visit menu page
     cy.clearLocalStorage();
-    cy.visit('/#/menu/A9');
+    cy.visit('/#/menu/A9', {
+      onBeforeLoad(win) {
+        win.localStorage.setItem('pawon_table_verified_date_A9', new Date().toISOString().split('T')[0]);
+      }
+    });
   });
 
   it('should successfully place a Dine In order and follow the status tracking screen', () => {

@@ -7,15 +7,6 @@ describe('Kedai Elvera 57 - Admin & POS Kasir E2E Operations (Cypress Mocked-API
   });
 
   it('should successfully log in, navigate to POS Kasir, select an active served order, and process transaction to completion', () => {
-    // 1. Inject Admin Session into LocalStorage to bypass login step and enter dashboard directly
-    cy.window().then((win) => {
-      win.localStorage.setItem('pawon_session', JSON.stringify({
-        role: 'admin',
-        name: 'Manager Kedai Elvera 57',
-        username: 'admin'
-      }));
-    });
-
     // 2. Mock API endpoints for Supabase data loading in Admin Panel
     cy.intercept('GET', '**/rest/v1/orders?*', {
       statusCode: 200,
@@ -81,8 +72,16 @@ describe('Kedai Elvera 57 - Admin & POS Kasir E2E Operations (Cypress Mocked-API
       body: []
     }).as('deleteOrder');
 
-    // 4. Visit the Admin dashboard page
-    cy.visit('/#/admin');
+    // 4. Visit the Admin dashboard page with session set
+    cy.visit('/#/admin', {
+      onBeforeLoad(win) {
+        win.localStorage.setItem('pawon_session', JSON.stringify({
+          role: 'admin',
+          name: 'Manager Kedai Elvera 57',
+          username: 'admin'
+        }));
+      }
+    });
 
     // 5. Assert Admin Header branding and current tab
     cy.contains('Data Transaksi').should('be.visible');

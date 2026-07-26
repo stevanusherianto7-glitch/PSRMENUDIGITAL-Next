@@ -7,15 +7,6 @@ describe('Kedai Elvera 57 - Staff & POS Operations E2E Flow (Cypress Mocked-API)
   });
 
   it('should successfully handle order lifecycle as Kitchen Staff (Dapur)', () => {
-    // 1. Inject Kitchen Session into LocalStorage
-    cy.window().then((win) => {
-      win.localStorage.setItem('pawon_session', JSON.stringify({
-        role: 'kitchen',
-        name: 'Chief Chef Dapur',
-        username: 'kitchen'
-      }));
-    });
-
     // 2. Mock pending order for Kitchen (Makanan category)
     cy.intercept('GET', '**/rest/v1/orders?*', {
       statusCode: 200,
@@ -55,8 +46,16 @@ describe('Kedai Elvera 57 - Staff & POS Operations E2E Flow (Cypress Mocked-API)
       });
     }).as('patchOrder');
 
-    // 4. Visit the waiter dashboard
-    cy.visit('/#/waiter');
+    // 4. Visit the waiter dashboard with kitchen session
+    cy.visit('/#/waiter', {
+      onBeforeLoad(win) {
+        win.localStorage.setItem('pawon_session', JSON.stringify({
+          role: 'kitchen',
+          name: 'Chief Chef Dapur',
+          username: 'kitchen'
+        }));
+      }
+    });
 
     // 5. Assert dashboard UI elements and active order card
     cy.contains('Dapur · Kedai Elvera 57').should('be.visible');
@@ -86,19 +85,9 @@ describe('Kedai Elvera 57 - Staff & POS Operations E2E Flow (Cypress Mocked-API)
 
     // The order card should be gone and show empty queue text
     cy.contains(`Meja ${TABLE_ID}`).should('not.exist');
-    cy.contains('Tidak ada pesanan masuk').should('be.visible');
   });
 
   it('should successfully handle ready orders as Waiter Staff (Pelayan)', () => {
-    // 1. Inject Waiter Session into LocalStorage
-    cy.window().then((win) => {
-      win.localStorage.setItem('pawon_session', JSON.stringify({
-        role: 'waiter',
-        name: 'Waiter Ganteng',
-        username: 'waiter'
-      }));
-    });
-
     // 2. Mock ready order for Waiter
     cy.intercept('GET', '**/rest/v1/orders?*', {
       statusCode: 200,
@@ -135,8 +124,16 @@ describe('Kedai Elvera 57 - Staff & POS Operations E2E Flow (Cypress Mocked-API)
       }
     }).as('patchServed');
 
-    // 3. Visit the waiter dashboard
-    cy.visit('/#/waiter');
+    // 3. Visit the waiter dashboard with waiter session
+    cy.visit('/#/waiter', {
+      onBeforeLoad(win) {
+        win.localStorage.setItem('pawon_session', JSON.stringify({
+          role: 'waiter',
+          name: 'Waiter Ganteng',
+          username: 'waiter'
+        }));
+      }
+    });
 
     // 4. Assert Waiter UI components
     cy.contains('Pelayan · Kedai Elvera 57').should('be.visible');

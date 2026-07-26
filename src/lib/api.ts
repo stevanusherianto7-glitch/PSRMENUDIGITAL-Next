@@ -16,6 +16,9 @@ function apiBaseUrl(): string {
 }
 
 function authToken(): string | null {
+  // Synchronous read dari localStorage fallback (sanctum_token).
+  // Token utama disimpan via tokenStorage (SecureStorage/localStorage async),
+  // tapi apiFetch butuh sync -> kita baca langsung localStorage sebagai cache sync.
   try {
     return localStorage.getItem('sanctum_token')
   } catch {

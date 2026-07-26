@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import QRCode from "react-qr-code";
 import { supabase } from "../../lib/supabase";
+import { setToken } from "../../lib/tokenStorage";
 import { toast } from "sonner";
 
 // Logo sekarang diambil dari APP_LOGO di data.ts (import alias: logoImg)
@@ -339,6 +340,16 @@ export default function AdminPage() {
 
   // Auth check
   useEffect(() => {
+    // Tangani token Sanctum dari Google OAuth callback (?token=...)
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const tok = params.get('token');
+      if (tok) {
+        setToken(tok); // async (SecureStorage/localStorage)
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    } catch { /* ignore */ }
+
     try {
       const s = localStorage.getItem("pawon_session");
       if (!s) { navigate("/"); return; }

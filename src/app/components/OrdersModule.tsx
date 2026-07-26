@@ -29,30 +29,11 @@ interface OrdersModuleProps {
 export const OrdersModule = ({ orders, onRefresh, connected, onNavigateToKasir }: OrdersModuleProps) => {
   const [filter, setFilter] = useState<OrderStatus | "all">("all");
 
-  // Subscribe to real-time updates
+  // Poll untuk update (realtime Supabase dicabut -> poll 15s)
   useEffect(() => {
-    if (connected) {
-      const channel = supabase
-        .channel('orders-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'orders'
-          },
-          (payload) => {
-            console.log('Real-time change:', payload);
-            // Refresh orders when any change occurs
-            onRefresh();
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
+    if (!connected) return;
+    const interval = setInterval(() => onRefresh(), 15000);
+    return () => clearInterval(interval);
   }, [connected, onRefresh]);
 
   const filtered = filter === "all" ? orders : orders.filter(o => o.status === filter);

@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Image, Upload, Link2, Camera, RefreshCw, AlertCircle } from "lucide-react";
-import { supabase } from "../../lib/supabase";
+import { uploadMenuPhoto, UploadResult } from "../../lib/menuUpload";
+import { uploadEventPhoto } from "../../lib/eventGallery";
+import { getApiBase } from "../../lib/api";
 
 interface PhotoUploaderProps {
   value: string;
@@ -96,18 +98,17 @@ export function PhotoUploader({
     try {
       const compressedBlob = await compressImage(file);
       const ext = "webp"; // Convert to webp
-      const path = `${folder}/${genId()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from(bucket)
-        .upload(path, compressedBlob, { 
-          upsert: true, 
-          contentType: "image/webp",
-          cacheControl: "3600"
-        });
-      if (upErr) throw upErr;
-      const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-      onChange(data.publicUrl);
-      setUrlInput(data.publicUrl);
+      const apiBase = getApiBase();
+      const name = file.name.replace(/\.[^.]+$/, "");
+      let result: UploadResult;
+      if (bucket === "events") {
+        result = await uploadEventPhoto(file, name, { apiBase });
+      } else {
+        // default: menu bucket
+        result = await uploadMenuPhoto(file, name, { apiBase });
+      }
+      onChange(result.public_id);
+      setUrlInput(result.url || result.public_id);
       setMode("preview");
     } catch (err: any) {
       // Fallback: use object URL (won't persist across sessions, but good for demo)

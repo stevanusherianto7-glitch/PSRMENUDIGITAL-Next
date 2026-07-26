@@ -80,23 +80,6 @@ export function MenuManagement({
     setToggling(null);
   }
 
-  // ensure storage bucket for photos
-  useEffect(() => {
-    if (!connected) return;
-    async function ensureBucket() {
-      try {
-        const { data: buckets } = await supabase.storage.listBuckets();
-        const exists = buckets?.some((b) => b.name === "menu-photos");
-        if (!exists) {
-          await supabase.storage.createBucket("menu-photos", { public: true });
-        }
-      } catch (e) {
-        console.log("Storage bucket check:", e);
-      }
-    }
-    ensureBucket();
-  }, [connected]);
-
   const availableCount = menuItems.filter((m) => m.available).length;
   const unavailableCount = menuItems.filter((m) => !m.available).length;
 

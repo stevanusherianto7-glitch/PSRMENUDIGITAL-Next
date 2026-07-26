@@ -1,13 +1,13 @@
 describe('Kedai Elvera 57 - Guest Menu & Ordering E2E Flow (Cypress Mocked-API)', () => {
   beforeEach(() => {
-    // Intercept Supabase fetch items call (return empty database to let GuestMenuPage fallback to using SEED_MENU)
-    cy.intercept('GET', '**/rest/v1/menu_items?*', {
+    // Intercept Supabase/Laravel fetch items call (return empty database to let GuestMenuPage fallback to using SEED_MENU)
+    cy.intercept('GET', '**/*menu_items*', {
       statusCode: 200,
       body: []
     }).as('fetchMenuItems');
 
     // Intercept order creation call
-    cy.intercept('POST', '**/rest/v1/orders*', {
+    cy.intercept('POST', '**/*orders*', {
       statusCode: 201,
       body: {
         id: 'CY-ORDER-12345',
@@ -24,7 +24,7 @@ describe('Kedai Elvera 57 - Guest Menu & Ordering E2E Flow (Cypress Mocked-API)'
     }).as('createOrder');
 
     // Intercept fetching orders on status screen
-    cy.intercept('GET', '**/rest/v1/orders?*', {
+    cy.intercept('GET', '**/*orders*', {
       statusCode: 200,
       body: [
         {
@@ -43,7 +43,7 @@ describe('Kedai Elvera 57 - Guest Menu & Ordering E2E Flow (Cypress Mocked-API)'
     }).as('fetchOrders');
 
     // Intercept PATCH/update order (used during cleanup/reset)
-    cy.intercept('PATCH', '**/rest/v1/orders?*', {
+    cy.intercept('PATCH', '**/*orders*', {
       statusCode: 200,
       body: { status: 'cancelled' }
     }).as('updateOrder');

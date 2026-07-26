@@ -14,7 +14,7 @@ import {
 // Menggunakan string path untuk logo agar tidak error di Vite
 import { rp, BRAND_NAME, APP_LOGO as logoImg } from "../data";
 import { fetchOrders, updateOrder, deleteOrder, getOrderDuration } from "../api";
-import { supabase } from "../../lib/supabase";
+import { apiFetch } from '../../lib/api';
 import { useTTS, preloadVoices } from "../hooks/useTTS";
 import { printService } from "../../utils/printService";
 import type { Order, OrderStatus, UserSession } from "../types";
@@ -58,52 +58,25 @@ export default function WaiterPage() {
   const [resetting, setResetting] = useState(false);
   const [selectedBatchMenu, setSelectedBatchMenu] = useState<string | null>(null);
 
-  // Load and subscribe to database-backed TTS settings
+  // Load database-backed TTS settings (polling 30s, realtime Supabase dicabut)
   useEffect(() => {
-    let settingsChannel: ReturnType<typeof supabase.channel> | null = null;
-    
     async function syncTtsSettings() {
       try {
-        const { data, error } = await supabase
-          .from("meja")
-          .select("duration")
-          .eq("id", "SYSTEM_SETTINGS")
-          .single();
-        if (!error && data && data.duration) {
-          const parsed = JSON.parse(data.duration);
-          if (parsed.tts_rate !== undefined) localStorage.setItem("pawon_tts_rate", String(parsed.tts_rate));
-          if (parsed.tts_pitch !== undefined) localStorage.setItem("pawon_tts_pitch", String(parsed.tts_pitch));
-          if (parsed.tts_voice_name !== undefined) localStorage.setItem("pawon_tts_voice_name", parsed.tts_voice_name);
+        const res = await apiFetch<{ duration?: string }>('GET', '/api/v1/meja/SYSTEM_SETTINGS');
+        if (res.ok && res.data?.duration) {
+          const parsed = JSON.parse(res.data.duration);
+          if (parsed.tts_rate !== undefined) localStorage.setItem('pawon_tts_rate', String(parsed.tts_rate));
+          if (parsed.tts_pitch !== undefined) localStorage.setItem('pawon_tts_pitch', String(parsed.tts_pitch));
+          if (parsed.tts_voice_name !== undefined) localStorage.setItem('pawon_tts_voice_name', parsed.tts_voice_name);
         }
       } catch (e) {
-        console.warn("Offline or failed to sync database TTS settings, using localStorage fallback:", e);
+        console.warn('Offline or failed to sync database TTS settings, using localStorage fallback:', e);
       }
-
-      // Subscribe to real-time updates for SYSTEM_SETTINGS
-      settingsChannel = supabase.channel("waiter-settings-" + Date.now())
-        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "meja", filter: "id=eq.SYSTEM_SETTINGS" }, payload => {
-          try {
-            const r = payload.new as any;
-            if (r && r.duration) {
-              const parsed = JSON.parse(r.duration);
-              if (parsed.tts_rate !== undefined) localStorage.setItem("pawon_tts_rate", String(parsed.tts_rate));
-              if (parsed.tts_pitch !== undefined) localStorage.setItem("pawon_tts_pitch", String(parsed.tts_pitch));
-              if (parsed.tts_voice_name !== undefined) localStorage.setItem("pawon_tts_voice_name", parsed.tts_voice_name);
-            }
-          } catch (e) {
-            console.error("Realtime settings sync error:", e);
-          }
-        })
-        .subscribe();
     }
 
     syncTtsSettings();
-
-    return () => {
-      if (settingsChannel) {
-        supabase.removeChannel(settingsChannel);
-      }
-    };
+    const interval = setInterval(syncTtsSettings, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   // ─── TTS — panggil setiap kali 'orders' berubah ───────────────────────────

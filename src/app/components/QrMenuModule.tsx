@@ -11,7 +11,6 @@ import {
 import QRCode from "react-qr-code";
 import { GUEST_BASE_URL } from "../pages/AdminPage";
 import { BRAND_NAME, APP_LOGO } from "../data";
-import { supabase } from "../../lib/supabase";
 import type { TableData } from "../types";
 
 interface QrMenuModuleProps {
@@ -113,26 +112,10 @@ export function QrMenuModule({ tables }: QrMenuModuleProps) {
   }, []);
 
   useEffect(() => {
-    let channel: any = null;
     if (activeTab === "gallery") {
-      loadEventPhotos().then((tableExists) => {
-        if (!tableExists) {
-          console.warn("[ROBUST FALLBACK] Table 'event_gallery' is missing. Skipping realtime subscription.");
-          return;
-        }
-        // Realtime subscription
-        channel = supabase.channel("event_gallery_realtime_admin")
-          .on("postgres_changes", { event: "*", schema: "public", table: "event_gallery" }, () => {
-            loadEventPhotos();
-          })
-          .subscribe();
-      });
-
-      return () => {
-        if (channel) {
-          supabase.removeChannel(channel);
-        }
-      };
+      loadEventPhotos();
+      const interval = setInterval(() => loadEventPhotos(), 15000);
+      return () => clearInterval(interval);
     }
   }, [activeTab, loadEventPhotos]);
 

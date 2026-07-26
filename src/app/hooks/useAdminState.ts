@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
 import { fetchOrders, fetchTransactions, createOrder, deleteOrder, updateOrder, getOrderDuration } from '../api';
 import { isBackendConfigured } from '../../lib/api';
 import type { 
@@ -167,10 +166,6 @@ export function useAdminState(): AdminState & AdminActions {
 
   // Initialize Supabase
   useEffect(() => {
-    const mejaChannel: any = null;
-    const txChannel: any = null;
-    const ordersChannel: any = null;
-
     const initSupabase = async () => {
       setSeeding(true);
       try {
@@ -189,9 +184,7 @@ export function useAdminState(): AdminState & AdminActions {
     initSupabase();
 
     return () => {
-      if (mejaChannel) supabase.removeChannel(mejaChannel);
-      if (txChannel) supabase.removeChannel(txChannel);
-      if (ordersChannel) supabase.removeChannel(ordersChannel);
+      // channel realtime sudah dicabut (polling)
     };
   }, []);
 

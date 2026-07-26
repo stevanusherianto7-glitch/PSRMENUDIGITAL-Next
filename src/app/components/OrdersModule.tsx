@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { RefreshCw, CheckCircle2, ChefHat, Clock, Flame, ShoppingBag, XCircle } from "lucide-react";
-import { supabase } from "../../lib/supabase";
 import { rp } from "../data";
 import type { Order, OrderStatus } from "../types";
 import { printService } from "../../utils/printService";

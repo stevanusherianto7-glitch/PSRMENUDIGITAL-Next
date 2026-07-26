@@ -9,7 +9,6 @@ import { ChefHat, Eye, EyeOff, Lock, ArrowRight, UtensilsCrossed, ShoppingBag, S
 
 // Menggunakan string path untuk logo agar tidak error di Vite
 import { CREDENTIALS, BRAND_NAME, APP_LOGO as logoImg } from "../data";
-import { supabase } from "../../lib/supabase";
 import { isBackendConfigured, getApiBase } from "../../lib/api";
 import type { UserRole, UserSession } from "../types";
 

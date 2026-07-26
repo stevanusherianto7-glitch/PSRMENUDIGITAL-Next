@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { fetchShifts, saveShift } from '../../lib/repository/shift';
+import { apiFetch } from '../../lib/api';
 import { ShiftType, Employee, Attendance } from '../types';
 import PatternManager from './PatternManager';
 import { exportMonthlyPDF, exportWeeklyPDF } from '../../utils/exportUtils';
@@ -43,81 +44,76 @@ export const JadwalShift = ({ dateRange }: { dateRange: DateRange | undefined })
   useEffect(() => {
     async function loadData() {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('jadwal_shift')
-        .select('*')
-        .order('created_at', { ascending: true });
-        
-      if (data && data.length > 0) {
-        setEmployees(data.map((d: any) => ({
-          id: d.id,
-          name: d.employee_name,
-          role: d.role
-        })));
-
-        // Build patterns and shifts
-        const newPatterns: Record<string, ShiftType[]> = {};
-        const newShifts: Record<string, Record<string, ShiftType>> = {};
-
-        data.forEach((d: any) => {
-          const schedule = d.schedule as string[]; // e.g. ['P', 'P', 'M', 'M', 'O', 'P', 'P']
-          const types = schedule.map(mapStatusToType);
-          newPatterns[d.id] = types;
-
-          // Map to current month dates
-          newShifts[d.id] = {};
-          dates.forEach(dateStr => {
-            const date = new Date(dateStr);
-            // JavaScript getDay() returns 0 for Sunday, 1 for Monday, etc.
-            // Our array index 0 is Monday, 6 is Sunday.
-            const dayIdx = (date.getDay() + 6) % 7;
-            newShifts[d.id][dateStr] = types[dayIdx] || ShiftType.LIBUR;
-          });
-        });
-
-        setPatterns(newPatterns);
-        setShifts(newShifts);
-
-        // Fetch Attendances dari Supabase
-        const { data: attData, error: attError } = await supabase
-          .from('attendances')
-          .select('*');
-
-        if (attData) {
-          setAttendances(attData.map((a: any) => ({
-            employeeId: a.employee_id,
-            date: a.date,
-            status: a.status
+      try {
+        const data = await fetchShifts();
+        if (data && data.length > 0) {
+          setEmployees(data.map((d: any) => ({
+            id: d.id,
+            name: d.employee_name,
+            role: d.role,
           })));
-        }
-      } else {
-        // Fallback data if empty
-        const fallback = [
-          { id: '1', employee_name: 'Budi Santoso', role: 'Kasir', schedule: ['P', 'P', 'M', 'M', 'O', 'P', 'P'] },
-          { id: '2', employee_name: 'Siti Aminah', role: 'Waiter', schedule: ['M', 'M', 'O', 'P', 'P', 'M', 'M'] },
-          { id: '3', employee_name: 'Agus Setiawan', role: 'Chef', schedule: ['P', 'O', 'P', 'P', 'M', 'M', 'O'] },
-        ];
-        
-        setEmployees(fallback.map(d => ({ id: d.id, name: d.employee_name, role: d.role })));
-        
-        const newPatterns: Record<string, ShiftType[]> = {};
-        const newShifts: Record<string, Record<string, ShiftType>> = {};
 
-        fallback.forEach(d => {
-          const types = d.schedule.map(mapStatusToType);
-          newPatterns[d.id] = types;
-          newShifts[d.id] = {};
-          dates.forEach(dateStr => {
-            const date = new Date(dateStr);
-            const dayIdx = (date.getDay() + 6) % 7;
-            newShifts[d.id][dateStr] = types[dayIdx] || ShiftType.LIBUR;
+          const newPatterns: Record<string, ShiftType[]> = {};
+          const newShifts: Record<string, Record<string, ShiftType>> = {};
+
+          data.forEach((d: any) => {
+            const schedule = (d.schedule as string[]) || [];
+            const types = schedule.map(mapStatusToType);
+            newPatterns[d.id] = types;
+
+            newShifts[d.id] = {};
+            dates.forEach(dateStr => {
+              const date = new Date(dateStr);
+              const dayIdx = (date.getDay() + 6) % 7;
+              newShifts[d.id][dateStr] = types[dayIdx] || ShiftType.LIBUR;
+            });
           });
-        });
 
-        setPatterns(newPatterns);
-        setShifts(newShifts);
+          setPatterns(newPatterns);
+          setShifts(newShifts);
+
+          // Fetch Attendances dari Laravel
+          const res = await apiFetch<{ data: any[] }>('GET', '/api/v1/attendances');
+          if (res.ok) {
+            const attData = (res.data as any).data ?? [];
+            setAttendances(attData.map((a: any) => ({
+              employeeId: a.employee_id,
+              date: a.date,
+              status: a.status,
+            })));
+          }
+        } else {
+          // Fallback data if empty
+          const fallback = [
+            { id: '1', employee_name: 'Budi Santoso', role: 'Kasir', schedule: ['P', 'P', 'M', 'M', 'O', 'P', 'P'] },
+            { id: '2', employee_name: 'Siti Aminah', role: 'Waiter', schedule: ['M', 'M', 'O', 'P', 'P', 'M', 'M'] },
+            { id: '3', employee_name: 'Agus Setiawan', role: 'Chef', schedule: ['P', 'O', 'P', 'P', 'M', 'M', 'O'] },
+          ];
+
+          setEmployees(fallback.map(d => ({ id: d.id, name: d.employee_name, role: d.role })));
+
+          const newPatterns: Record<string, ShiftType[]> = {};
+          const newShifts: Record<string, Record<string, ShiftType>> = {};
+
+          fallback.forEach(d => {
+            const types = d.schedule.map(mapStatusToType);
+            newPatterns[d.id] = types;
+            newShifts[d.id] = {};
+            dates.forEach(dateStr => {
+              const date = new Date(dateStr);
+              const dayIdx = (date.getDay() + 6) % 7;
+              newShifts[d.id][dateStr] = types[dayIdx] || ShiftType.LIBUR;
+            });
+          });
+
+          setPatterns(newPatterns);
+          setShifts(newShifts);
+        }
+      } catch (e) {
+        console.error('Failed to load schedule:', e);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     loadData();
   }, [currentDate]);
@@ -139,39 +135,32 @@ export const JadwalShift = ({ dateRange }: { dateRange: DateRange | undefined })
       return [...filtered, { employeeId, date, status }];
     });
 
-    // Simpan ke Supabase
-    const { error } = await supabase
-      .from('attendances')
-      .upsert({
-        employee_id: employeeId,
-        date: date,
-        status: status
-      }, { onConflict: 'employee_id,date' });
-
-    if (error) {
-      console.error("Error saving attendance:", error);
+    // Simpan ke Laravel
+    const res = await apiFetch('POST', '/api/v1/attendances', {
+      employee_name: employees.find(e => e.id === employeeId)?.name || employeeId,
+      role: employees.find(e => e.id === employeeId)?.role,
+      clock_in: status === 'hadir' ? new Date().toISOString() : null,
+      clock_out: status === 'pulang' ? new Date().toISOString() : null,
+    });
+    if (!res.ok) {
+      console.error('Error saving attendance:', (res.data as any)?.message || 'unknown');
     }
   };
 
   const handleSavePattern = async (newPattern: Record<string, ShiftType[]>) => {
     setPatterns(newPattern);
-    
-    // Save to Supabase
+
+    // Save ke Laravel (/api/v1/jadwal-shift)
     for (const empId in newPattern) {
       const schedule = newPattern[empId].map(t => {
         if (t === ShiftType.PAGI) return 'P';
         if (t === ShiftType.MIDDLE) return 'M';
         return 'O';
       });
-      
-      const { error } = await supabase
-        .from('jadwal_shift')
-        .update({ schedule })
-        .eq('id', empId);
-        
-      if (error) console.error("Error saving pattern:", error);
+      const emp = employees.find(e => e.id === empId);
+      await saveShift({ id: empId, employee_name: emp?.name || empId, role: emp?.role || 'waiter', schedule });
     }
-    
+
     setView('grid');
   };
 

@@ -5,7 +5,6 @@ import {
   LayoutList, CheckCircle2, AlertCircle, Edit3, Camera, Link2,
   ArrowUpDown, Star, Package
 } from "lucide-react";
-import { supabase } from "../../lib/supabase";
 import { rp, menuCategories, SEED_MENU } from "../data";
 import { PhotoUploader, genId } from "./PhotoUploader";
 import { menuImageUrl } from "../../lib/cloudinary";

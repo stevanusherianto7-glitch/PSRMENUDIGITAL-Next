@@ -9,7 +9,7 @@ import {
   Download, Clock, Sparkles, Trash2, Play, ChevronDown, ChevronUp, RefreshCw, 
   Banknote, Smartphone, CreditCard, Wallet, Info, CheckCircle2 
 } from "lucide-react";
-import { supabase } from "../../lib/supabase";
+import { fetchDashboardMetrics } from '../../lib/repository/dashboard';
 import { rp } from "../data";
 import type { Transaction, Order } from "../types";
 import { toast } from "sonner";
@@ -297,9 +297,6 @@ export const DashboardModule = ({ transactions, liveOrders, connected, onTransac
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
-    let transactionsSubscription: any;
-    let ordersSubscription: any;
-
     const fetchMetrics = async () => {
       setLoading(true);
       setFetchError(false);
@@ -309,23 +306,17 @@ export const DashboardModule = ({ transactions, liveOrders, connected, onTransac
         const endOfLocalToday = new Date();
         endOfLocalToday.setHours(23, 59, 59, 999);
 
-        const { data, error } = await supabase
-          .from('transactions')
-          .select('total')
-          .gte('created_at', startOfLocalToday.toISOString())
-          .lte('created_at', endOfLocalToday.toISOString());
-
-        if (error) throw error;
-
-        if (data) {
-          const totalSales = data.reduce((sum, tx) => sum + (tx.total || 0), 0);
-          const transactionCount = data.length;
-          const avgTransaction = transactionCount > 0 ? Math.round(totalSales / transactionCount) : 0;
-
-          setTodayMetrics({ totalSales, transactionCount, avgTransaction });
-        }
+        const m = await fetchDashboardMetrics(
+          startOfLocalToday.toISOString(),
+          endOfLocalToday.toISOString()
+        );
+        setTodayMetrics({
+          totalSales: m.total_revenue,
+          transactionCount: m.transaction_count,
+          avgTransaction: m.avg_order_value,
+        });
       } catch (err) {
-        console.error("Failed to fetch metrics:", err);
+        console.error('Failed to fetch metrics:', err);
         setFetchError(true);
       } finally {
         setLoading(false);
@@ -334,38 +325,13 @@ export const DashboardModule = ({ transactions, liveOrders, connected, onTransac
 
     if (connected) {
       fetchMetrics();
-
-      transactionsSubscription = supabase
-        .channel('transactions-changes')
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'transactions'
-        }, () => {
-          fetchMetrics();
-        })
-        .subscribe();
-
-      ordersSubscription = supabase
-        .channel('orders-changes')
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'orders'
-        }, () => {
-          console.log('Orders updated via realtime');
-        })
-        .subscribe();
-
-      interval = setInterval(fetchMetrics, 30000);
+      interval = setInterval(fetchMetrics, 30000); // poll 30s
     } else {
       setLoading(false);
     }
 
     return () => {
       if (interval) clearInterval(interval);
-      if (transactionsSubscription) transactionsSubscription.unsubscribe();
-      if (ordersSubscription) ordersSubscription.unsubscribe();
     };
   }, [connected, retryCount]);
 

@@ -12,7 +12,7 @@ import {
   Calendar, Users, Phone, User, FileText, Camera, Lock, Unlock, ShieldCheck
 } from "lucide-react";
 import { SEED_MENU, menuCategories, rp, BRAND_NAME, APP_LOGO as logoImg, RESTAURANT_COORDS, ALLOWED_RADIUS_METERS } from "../data";
-import { supabase } from "../../lib/supabase";
+import { fetchEvents } from '../../lib/repository/event';
 import { fetchMenu } from "../../lib/repository/menu";
 import { createOrder, fetchOrders, deleteOrder, updateOrder, getOrderDuration } from "../api";
 import type { MenuItem, CartItem, Order, OrderMode } from "../types";
@@ -316,23 +316,9 @@ export default function GuestMenuPage() {
   }, [checkGPSLocation, tableId]);
 
   useEffect(() => {
-    let activeChannel: any = null;
-
     async function setupEventPhotos() {
       try {
-        const { data, error } = await supabase
-          .from("event_gallery")
-          .select("*")
-          .order("created_at", { ascending: false });
-        
-        if (error) {
-          if (error.code === "PGRST205") {
-            console.warn("[ROBUST FALLBACK] Table 'event_gallery' is missing in DB schema. Skipping realtime subscription.");
-            return;
-          }
-          throw error;
-        }
-
+        const data = await fetchEvents();
         if (data && data.length > 0) {
           const mapped = data.map((item: any) => ({
             id: item.id,
@@ -340,30 +326,19 @@ export default function GuestMenuPage() {
             date: item.date,
             category: item.category,
             image: item.image,
-            description: item.description
+            description: item.description,
           }));
           setEventPhotos(mapped);
         }
-
-        // Only subscribe if table exists
-        activeChannel = supabase.channel("event_gallery_realtime_guest")
-          .on("postgres_changes", { event: "*", schema: "public", table: "event_gallery" }, () => {
-            setupEventPhotos();
-          })
-          .subscribe();
-
       } catch (err) {
-        console.warn("Failed to fetch event photos from Supabase, using local fallback:", err);
+        console.warn('Failed to fetch event photos, using local fallback:', err);
       }
     }
 
+    // Poll 30s (realtime Supabase dicabut)
     setupEventPhotos();
-
-    return () => {
-      if (activeChannel) {
-        supabase.removeChannel(activeChannel);
-      }
-    };
+    const interval = setInterval(setupEventPhotos, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const filtered = menuItems.filter(m => m.category === category);

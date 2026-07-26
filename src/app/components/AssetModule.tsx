@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { fetchAssets as fetchAssetsRepo, saveAsset, deleteAsset } from '../../lib/repository/asset';
 import { Plus, Edit2, Trash2, Search, Briefcase, Tag, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -30,13 +30,14 @@ export const AssetModule = () => {
 
   const fetchAssets = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('assets')
-      .select('*')
-      .order('created_at', { ascending: true });
-      
-    if (data) setAssets(data);
-    setLoading(false);
+    try {
+      const data = await fetchAssetsRepo();
+      setAssets(data as unknown as Asset[]);
+    } catch (e) {
+      console.error('Failed to fetch assets:', e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleOpenDialog = (asset: Asset | null) => {
@@ -48,31 +49,20 @@ export const AssetModule = () => {
   const handleSave = async () => {
     if (currentAsset) {
       // Update
-      const { error } = await supabase
-        .from('assets')
-        .update({ name: formData.name, category: formData.category, quantity: formData.quantity, condition: formData.condition })
-        .eq('id', currentAsset.id);
-        
-      if (!error) fetchAssets();
+      await saveAsset({ id: currentAsset.id, name: formData.name, category: formData.category, quantity: formData.quantity, condition: formData.condition });
+      fetchAssets();
     } else {
       // Create
-      const { error } = await supabase
-        .from('assets')
-        .insert(formData);
-        
-      if (!error) fetchAssets();
+      await saveAsset({ name: formData.name, category: formData.category, quantity: formData.quantity, condition: formData.condition });
+      fetchAssets();
     }
     setIsDialogOpen(false);
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Apakah Anda yakin ingin menghapus asset ini?")) {
-      const { error } = await supabase
-        .from('assets')
-        .delete()
-        .eq('id', id);
-        
-      if (!error) fetchAssets();
+    if (confirm('Apakah Anda yakin ingin menghapus asset ini?')) {
+      await deleteAsset(Number(id));
+      fetchAssets();
     }
   };
 

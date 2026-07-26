@@ -267,3 +267,38 @@ export async function fetchTransactions(
     return { data: [], total: 0, page, limit };
   }
 }
+
+export interface CreateTransactionInput {
+  id?: string
+  table_id?: string | null
+  items?: any[]
+  subtotal?: number
+  discount?: number
+  discount_amount?: number
+  tax?: number
+  total: number
+  method?: string
+}
+
+export async function createTransaction(input: CreateTransactionInput): Promise<ApiResult<any>> {
+  if (isBackendConfigured()) {
+    const res = await apiFetch<Transaction>('POST', '/api/v1/transactions', {
+      table_id: input.table_id,
+      items: input.items,
+      subtotal: input.subtotal ?? input.total,
+      discount: input.discount ?? 0,
+      discount_amount: input.discount_amount ?? 0,
+      tax: input.tax ?? 0,
+      total: input.total,
+      method: input.method ?? 'cash',
+    });
+    return res;
+  }
+  // Fallback localStorage
+  const local: any[] = JSON.parse(localStorage.getItem('local_transactions') || '[]');
+  const tx = { ...input, created_at: new Date().toISOString() };
+  local.unshift(tx);
+  localStorage.setItem('local_transactions', JSON.stringify(local));
+  return { ok: true, status: 201, data: tx };
+}
+

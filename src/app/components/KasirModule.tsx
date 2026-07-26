@@ -12,7 +12,6 @@ import {
   Printer, ShoppingBag, X, Clock, Flame, XCircle, AlertTriangle
 } from "lucide-react";
 import { rp, menuCategories, APP_LOGO } from "../data";
-import { supabase } from "../../lib/supabase";
 
 const orderModeConfig = {
   "dine-in":   { label: "Dine In",   color: "text-indigo-400",  bg: "bg-indigo-500/10",  border: "border-indigo-500/20" },

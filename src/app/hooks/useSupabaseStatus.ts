@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { isBackendConfigured } from '../../lib/api';
 
-// Hook untuk cek status Supabase dengan efek neon
+// Hook untuk cek status backend Laravel (ganti Supabase ping).
 export const useSupabaseStatus = () => {
   const [status, setStatus] = useState<'online' | 'offline' | 'loading'>('loading');
   const [lastCheck, setLastCheck] = useState<Date>(new Date());
@@ -9,14 +9,9 @@ export const useSupabaseStatus = () => {
   useEffect(() => {
     const checkStatus = async () => {
       setStatus('loading');
-      try {
-        // Cek koneksi ke Supabase dengan endpoint yang lebih ringan
-        const { data, error } = await supabase.from('meja').select('id').limit(1);
-        if (error) throw error;
-        setStatus('online');
-      } catch (error) {
-        setStatus('offline');
-      }
+      // Backend terkonfigurasi (VITE_API_URL diisi) = online.
+      // Fallback localStorage = offline-mode (tetap jalan).
+      setStatus(isBackendConfigured() ? 'online' : 'offline');
       setLastCheck(new Date());
     };
 

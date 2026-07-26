@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from "../../lib/supabase";
+import { fetchShifts, saveShift, deleteShift } from '../../lib/repository/shift';
 import { Plus, Edit2, Trash2, Search, UserPlus, Mail, Lock, Shield } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -28,19 +28,20 @@ export const KaryawanModule = () => {
 
   const fetchEmployees = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('jadwal_shift')
-      .select('id, employee_name, role')
-      .order('created_at', { ascending: true });
-      
-    if (data) setEmployees(data);
-    setLoading(false);
+    try {
+      const data = await fetchShifts();
+      setEmployees(data as unknown as Employee[]);
+    } catch (e) {
+      console.error('Failed to fetch employees:', e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleOpenDialog = (emp: Employee | null) => {
     setCurrentEmp(emp);
-    setFormData(emp 
-      ? { name: emp.employee_name, role: emp.role, email: '', password: '' } 
+    setFormData(emp
+      ? { name: emp.employee_name, role: emp.role, email: '', password: '' }
       : { name: '', role: 'waiter', email: '', password: '' }
     );
     setError('');
@@ -50,68 +51,39 @@ export const KaryawanModule = () => {
   const handleSave = async () => {
     setSaveLoading(true);
     setError('');
-    
+
     try {
       if (currentEmp) {
-        // Update di jadwal_shift (hanya update nama dan role)
-        const { error: updateError } = await supabase
-          .from('jadwal_shift')
-          .update({ employee_name: formData.name, role: formData.role })
-          .eq('id', currentEmp.id);
-          
-        if (updateError) throw updateError;
+        // Update di jadwal_shift (hanya nama dan role)
+        await saveShift({ id: currentEmp.id, employee_name: formData.name, role: formData.role });
         fetchEmployees();
         setIsDialogOpen(false);
       } else {
-        // 1. Daftarkan Akun Login di Supabase Auth
-        if (!formData.email || !formData.password) {
-          throw new Error("Email dan Password wajib diisi untuk karyawan baru.");
+        // Tambahkan ke jadwal_shift untuk jadwal (akun login diurus backend /api/v1/auth)
+        if (!formData.name) {
+          throw new Error('Nama wajib diisi untuk karyawan baru.');
         }
-        
-        const { data: authData, error: authError } = await tempSupabase.auth.signUp({
-          email: formData.email,
-          password: formData.password,
-          options: {
-            data: { 
-              nama: formData.name,
-              role: formData.role
-            }
-          }
+        await saveShift({
+          employee_name: formData.name,
+          role: formData.role,
+          schedule: ['O', 'O', 'O', 'O', 'O', 'O', 'O'], // Default schedule
         });
-        
-        if (authError) throw authError;
-        
-        // 2. Tambahkan ke jadwal_shift untuk jadwal
-        const { error: insertError } = await supabase
-          .from('jadwal_shift')
-          .insert({ 
-            employee_name: formData.name, 
-            role: formData.role,
-            schedule: ['O', 'O', 'O', 'O', 'O', 'O', 'O'] // Default schedule
-          });
-          
-        if (insertError) throw insertError;
-        
         fetchEmployees();
         setIsDialogOpen(false);
         alert(`Sukses! Karyawan ${formData.name} berhasil didaftarkan.`);
       }
     } catch (err: any) {
-      console.error("Error saving employee:", err);
-      setError(err.message || "Gagal menyimpan data.");
+      console.error('Error saving employee:', err);
+      setError(err.message || 'Gagal menyimpan data.');
     } finally {
       setSaveLoading(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Apakah Anda yakin ingin menghapus karyawan ini? (Catatan: Ini hanya menghapus dari jadwal, bukan dari akun login)")) {
-      const { error } = await supabase
-        .from('jadwal_shift')
-        .delete()
-        .eq('id', id);
-        
-      if (!error) fetchEmployees();
+    if (confirm('Apakah Anda yakin ingin menghapus karyawan ini? (Catatan: Ini hanya menghapus dari jadwal, bukan dari akun login)')) {
+      await deleteShift(Number(id));
+      fetchEmployees();
     }
   };
 

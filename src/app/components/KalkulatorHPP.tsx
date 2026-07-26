@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from "../../lib/supabase";
+import { fetchRecipes } from '../../lib/repository/recipe';
 import { Trash2, Plus, Calculator, RefreshCw, Info, ArrowUpRight, Percent, DollarSign, Package, Download } from 'lucide-react';
 import { exportHPPReport } from '../../utils/exportUtils';
 
@@ -79,31 +79,30 @@ export const KalkulatorHPP = () => {
   useEffect(() => {
     async function loadIngredients() {
       setLoading(true);
-      // Mencoba mengambil data dari Supabase (Tabel bahan_resep)
-      const { data, error } = await supabase
-        .from('bahan_resep')
-        .select('*')
-        .order('created_at', { ascending: true });
-        
-      if (data && data.length > 0) {
-        // Mapping data dari DB ke struktur baru yang lebih lengkap
-        const mappedData = data.map((item: any) => ({
-          id: item.id,
-          name: item.name || 'Bahan Tanpa Nama',
-          purchasePrice: item.price || 0,
-          conversionValue: item.conversion_value || 1000, // Default 1000 (asumsi kg ke gram)
-          quantityNeeded: item.qty || 1,
-        }));
-        setIngredients(mappedData);
-      } else {
-        // Fallback Premium Data jika kosong/offline
-        setIngredients([
-          { id: '1', name: 'Daging Ayam (kg)', purchasePrice: 40000, conversionValue: 1000, quantityNeeded: 500 },
-          { id: '2', name: 'Bawang Putih (kg)', purchasePrice: 35000, conversionValue: 1000, quantityNeeded: 50 },
-          { id: '3', name: 'Minyak Goreng (liter)', purchasePrice: 15000, conversionValue: 1000, quantityNeeded: 100 },
-        ]);
+      // Data bahan resep dari Laravel (/api/v1/bahan-resep) + fallback lokal
+      try {
+        const data = await fetchRecipes();
+        if (data && data.length > 0) {
+          const mappedData = data.map((item: any) => ({
+            id: String(item.id),
+            name: item.name || 'Bahan Tanpa Nama',
+            purchasePrice: item.price || 0,
+            conversionValue: item.conversion_value || 1000,
+            quantityNeeded: item.qty || 1,
+          }));
+          setIngredients(mappedData);
+        } else {
+          setIngredients([
+            { id: '1', name: 'Daging Ayam (kg)', purchasePrice: 40000, conversionValue: 1000, quantityNeeded: 500 },
+            { id: '2', name: 'Bawang Putih (kg)', purchasePrice: 35000, conversionValue: 1000, quantityNeeded: 50 },
+            { id: '3', name: 'Minyak Goreng (liter)', purchasePrice: 15000, conversionValue: 1000, quantityNeeded: 100 },
+          ]);
+        }
+      } catch (e) {
+        console.error('Failed to load ingredients:', e);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     loadIngredients();
   }, []);

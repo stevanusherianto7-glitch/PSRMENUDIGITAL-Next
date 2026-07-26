@@ -18,7 +18,12 @@ import {
   Calendar, Calculator, Briefcase, Key, Settings
 } from "lucide-react";
 import QRCode from "react-qr-code";
-import { supabase } from "../../lib/supabase";
+import { apiFetch } from '../../lib/api';
+import { fetchTransactions, createTransaction } from '../api';
+import { seedMeja, updateMejaStatus } from '../../lib/repository/meja';
+import { saveInventory, deleteInventory, logInventory, fetchInventoryLogs } from '../../lib/repository/inventory';
+import { fetchReservations, saveReservation } from '../../lib/repository/reservation';
+import { upsertMenuItem, deleteMenuItem } from '../../lib/repository/menuCrud';
 import { setToken } from "../../lib/tokenStorage";
 import { toast } from "sonner";
 
@@ -216,11 +221,9 @@ export default function AdminPage() {
 
     try {
       const durationJson = JSON.stringify({ tts_rate: rate, tts_pitch: pitch, tts_voice_name: voiceName });
-      await supabase.from("meja").update({
-        duration: durationJson
-      }).eq("id", "SYSTEM_SETTINGS");
+      await updateMejaStatus('SYSTEM_SETTINGS', { duration: durationJson } as any);
     } catch (e) {
-      console.error("Failed to sync TTS settings to database:", e);
+      console.error('Failed to sync TTS settings to backend:', e);
     }
   };
 
@@ -277,43 +280,29 @@ export default function AdminPage() {
   }
 
   async function addInventory(item: InventoryItem) {
-    const { error } = await supabase.from("inventory").insert(item);
-    if (!error) {
-      setInventory(prev => [...prev, item]);
-      await supabase.from("inventory_logs").insert({
-        inventory_id: item.id,
-        quantity: item.stock,
-        type: "in"
-      });
-      // Refresh logs
-      const { data: logRows } = await supabase.from("inventory_logs").select("*").order("created_at", { ascending: false });
-      if (logRows) setInventoryLogs(logRows);
-    }
+    const saved = await saveInventory(item);
+    setInventory(prev => [...prev, item]);
+    await logInventory(Number(saved.id) || Number(item.id), item.stock, 'in');
+    const logs = await fetchInventoryLogs();
+    setInventoryLogs(logs);
   }
 
   async function updateInventory(item: InventoryItem) {
     const oldItem = inventory.find(i => i.id === item.id);
     const stockDiff = item.stock - (oldItem?.stock || 0);
 
-    const { error } = await supabase.from("inventory").update(item).eq("id", item.id);
-    if (!error) {
-      setInventory(prev => prev.map(i => i.id === item.id ? item : i));
-      if (stockDiff > 0) {
-        await supabase.from("inventory_logs").insert({
-          inventory_id: item.id,
-          quantity: stockDiff,
-          type: "in"
-        });
-        // Refresh logs
-        const { data: logRows } = await supabase.from("inventory_logs").select("*").order("created_at", { ascending: false });
-        if (logRows) setInventoryLogs(logRows);
-      }
+    const saved = await saveInventory(item);
+    setInventory(prev => prev.map(i => i.id === item.id ? item : i));
+    if (stockDiff > 0) {
+      await logInventory(Number(saved.id) || Number(item.id), stockDiff, 'in');
+      const logs = await fetchInventoryLogs();
+      setInventoryLogs(logs);
     }
   }
 
-  async function deleteInventory(id: string) {
-    const { error } = await supabase.from("inventory").delete().eq("id", id);
-    if (!error) setInventory(prev => prev.filter(i => i.id !== id));
+  async function deleteInventoryItem(id: string) {
+    await deleteInventory(id);
+    setInventory(prev => prev.filter(i => i.id !== id));
   }
   const [liveOrders, setLiveOrders] = useState<Order[]>([]);
   const [reservations, setReservations] = useState<any[]>([]);
@@ -394,21 +383,19 @@ export default function AdminPage() {
   // Load transactions from server
   const loadTransactions = useCallback(async () => {
     try {
-      const { data: txRows } = await supabase.from("transactions").select("*").order("created_at", { ascending: false }).limit(200);
-      if (txRows) {
-        setTransactions(txRows.map((r: any) => ({
-          id: r.id,
-          table_id: r.table_id,
-          items: r.items || [],
-          subtotal: r.subtotal,
-          discount: r.discount,
-          discount_amount: r.discount_amount,
-          tax: r.tax,
-          total: r.total,
-          method: r.method,
-          created_at: r.created_at
-        })));
-      }
+      const list = await fetchTransactions();
+      setTransactions(list.map((r: any) => ({
+        id: r.id,
+        table_id: r.table_id,
+        items: r.items || [],
+        subtotal: r.subtotal,
+        discount: r.discount,
+        discount_amount: r.discount_amount,
+        tax: r.tax,
+        total: r.total,
+        method: r.method,
+        created_at: r.created_at
+      })));
     } catch (e) { console.log("Error loading transactions:", e); }
   }, []);
 
@@ -422,267 +409,132 @@ export default function AdminPage() {
     return () => clearInterval(interval);
   }, [loadOrders, loadTransactions]);
 
-  // Supabase init
+  // Laravel init (HTTP, polling 30s di loadOrders/loadTransactions)
   useEffect(() => {
-    let mejaChannel: ReturnType<typeof supabase.channel> | null = null;
-    let txChannel: ReturnType<typeof supabase.channel> | null = null;
-    let ordersChannel: ReturnType<typeof supabase.channel> | null = null;
-    let reservationsChannel: ReturnType<typeof supabase.channel> | null = null;
-
-    async function initSupabase() {
+    async function initBackend() {
       setSeeding(true);
       try {
-        const { error: pingError } = await supabase.from("meja").select("id").limit(1);
-        if (pingError) throw pingError;
-        setConnected(true);
-
-        const { data: mejaRows } = await supabase.from("meja").select("*");
+        const mejaRes = await apiFetch<{ data: any[] }>('GET', '/api/v1/meja');
+        const mejaRows = mejaRes.ok ? ((mejaRes.data as any).data ?? []) : [];
         if (!mejaRows || mejaRows.length === 0) {
-          await supabase.from("meja").insert(SEED_TABLES.map(t => ({ id: t.id, seat: t.seat, status: t.status, pax: null, total: null, duration: null, orders: null })));
-          await supabase.from("meja").insert({
-            id: "SYSTEM_SETTINGS",
-            seat: 0,
-            status: "available",
-            duration: JSON.stringify({ tts_rate: 0.95, tts_pitch: 1.15, tts_voice_name: "" })
+          await seedMeja(SEED_TABLES.map(t => ({ id: t.id, seat: t.seat, status: t.status, pax: null, total: null, duration: null, orders: null })));
+          await apiFetch('POST', '/api/v1/meja', {
+            id: 'SYSTEM_SETTINGS', seat: 0, status: 'available',
+            duration: JSON.stringify({ tts_rate: 0.95, tts_pitch: 1.15, tts_voice_name: '' }),
           });
         } else {
-          const actualTables = mejaRows.filter((r: any) => r.id !== "SYSTEM_SETTINGS");
+          const actualTables = mejaRows.filter((r: any) => r.id !== 'SYSTEM_SETTINGS');
           setTables(actualTables.map((r: any) => ({ id: r.id, seat: r.seat, status: r.status, pax: r.pax, total: r.total, duration: r.duration, orders: r.orders })));
 
-          const settingsRow = mejaRows.find((r: any) => r.id === "SYSTEM_SETTINGS");
+          const settingsRow = mejaRows.find((r: any) => r.id === 'SYSTEM_SETTINGS');
           if (settingsRow && settingsRow.duration) {
             try {
               const parsed = JSON.parse(settingsRow.duration);
-              if (parsed.tts_rate !== undefined) {
-                localStorage.setItem("pawon_tts_rate", String(parsed.tts_rate));
-                setTtsRate(parsed.tts_rate);
-              }
-              if (parsed.tts_pitch !== undefined) {
-                localStorage.setItem("pawon_tts_pitch", String(parsed.tts_pitch));
-                setTtsPitch(parsed.tts_pitch);
-              }
-              if (parsed.tts_voice_name !== undefined) {
-                localStorage.setItem("pawon_tts_voice_name", parsed.tts_voice_name);
-                setTtsVoice(parsed.tts_voice_name);
-              }
-            } catch (e) {
-              console.error("Failed to parse settings row duration:", e);
-            }
+              if (parsed.tts_rate !== undefined) { localStorage.setItem('pawon_tts_rate', String(parsed.tts_rate)); setTtsRate(parsed.tts_rate); }
+              if (parsed.tts_pitch !== undefined) { localStorage.setItem('pawon_tts_pitch', String(parsed.tts_pitch)); setTtsPitch(parsed.tts_pitch); }
+              if (parsed.tts_voice_name !== undefined) { localStorage.setItem('pawon_tts_voice_name', parsed.tts_voice_name); setTtsVoice(parsed.tts_voice_name); }
+            } catch (e) { console.error('Failed to parse settings row duration:', e); }
           } else if (!settingsRow) {
-            await supabase.from("meja").insert({
-              id: "SYSTEM_SETTINGS",
-              seat: 0,
-              status: "available",
-              duration: JSON.stringify({ tts_rate: 0.95, tts_pitch: 1.15, tts_voice_name: "" })
+            await apiFetch('POST', '/api/v1/meja', {
+              id: 'SYSTEM_SETTINGS', seat: 0, status: 'available',
+              duration: JSON.stringify({ tts_rate: 0.95, tts_pitch: 1.15, tts_voice_name: '' }),
             });
           }
         }
 
-        // Upsert semua seed: update nama/harga yang berubah, insert yang baru
-        await supabase.from("menu_items").upsert(
-          SEED_MENU.map(m => ({
-            id: m.id,
-            name: m.name,
-            category: m.category,
-            price: m.price,
-            image: m.image && (m.image as string).startsWith("http") ? m.image : m.id,
-            available: m.available,
-            tag: m.tag || null,
-            description: m.description || null,
+        // Upsert seed menu + load
+        await apiFetch('POST', '/api/v1/menu-items/sync', {
+          items: SEED_MENU.map(m => ({
+            id: m.id, name: m.name, category: m.category, price: m.price,
+            image: m.image && (m.image as string).startsWith('http') ? m.image : m.id,
+            available: m.available, tag: m.tag || null, description: m.description || null,
           })),
-          { onConflict: "id", ignoreDuplicates: false }
-        );
+        });
 
-        const { data: menuRows } = await supabase.from("menu_items").select("*");
+        const menuRes = await apiFetch<{ data: any[] }>('GET', '/api/v1/menu-items');
+        const menuRows = menuRes.ok ? ((menuRes.data as any).data ?? []) : [];
         if (menuRows && menuRows.length > 0) {
           const seedIds = new Set(SEED_MENU.map(m => m.id));
           const resolvedItems: MenuItem[] = menuRows.map((r: any) => {
             const seed = SEED_MENU.find(m => m.id === r.id);
-            const imageResolved =
-              r.image && (r.image.startsWith("http") || r.image.startsWith("blob"))
-                ? r.image
-                : seed?.image || "";
-            return {
-              id: r.id,
-              name: r.name,
-              category: r.category,
-              price: r.price,
-              image: imageResolved,
-              available: r.available,
-              tag: r.tag || undefined,
-              description: r.description || seed?.description || "",
-            };
+            const imageResolved = r.image && (r.image.startsWith('http') || r.image.startsWith('blob')) ? r.image : seed?.image || '';
+            return { id: r.id, name: r.name, category: r.category, price: r.price, image: imageResolved, available: r.available, tag: r.tag || undefined, description: r.description || seed?.description || '' };
           });
-          // Seed items dulu, item custom di belakang
-          setMenuItems([
-            ...resolvedItems.filter(i => seedIds.has(i.id)),
-            ...resolvedItems.filter(i => !seedIds.has(i.id)),
-          ]);
+          setMenuItems([...resolvedItems.filter(i => seedIds.has(i.id)), ...resolvedItems.filter(i => !seedIds.has(i.id))]);
         } else {
           setMenuItems(SEED_MENU);
         }
 
-        const { data: invRows } = await supabase.from("inventory").select("*");
+        const invRes = await apiFetch<{ data: any[] }>('GET', '/api/v1/inventory');
+        const invRows = invRes.ok ? ((invRes.data as any).data ?? []) : [];
         if (!invRows || invRows.length === 0) {
-          await supabase.from("inventory").insert(SEED_INVENTORY.map(i => ({ id: i.id, name: i.name, qty: i.qty, unit: i.unit, exp_date: i.exp_date, category: i.category, method: i.method, stock: i.stock, min_stock: i.min_stock })));
+          for (const i of SEED_INVENTORY) await saveInventory({ id: i.id, name: i.name, qty: i.qty, unit: i.unit, exp_date: i.exp_date, category: i.category, method: i.method, stock: i.stock, min_stock: i.min_stock });
+          setInventory(SEED_INVENTORY.map(i => ({ id: i.id, name: i.name, qty: i.qty, unit: i.unit, exp_date: i.exp_date, category: i.category, method: i.method, stock: i.stock, min_stock: i.min_stock })));
         } else {
           setInventory(invRows.map((r: any) => ({ id: r.id, name: r.name, qty: r.qty, unit: r.unit, exp_date: r.exp_date, category: r.category, method: r.method, stock: r.stock, min_stock: r.min_stock })));
         }
 
         await loadTransactions();
 
-        const { data: logRows } = await supabase.from("inventory_logs").select("*").order("created_at", { ascending: false });
-        if (logRows) setInventoryLogs(logRows);
+        const logRes = await fetchInventoryLogs();
+        setInventoryLogs(logRes);
 
-        const { data: resRows } = await supabase.from("reservations").select("*").order("created_at", { ascending: false });
-        if (resRows) setReservations(resRows);
+        const resRes = await fetchReservations();
+        setReservations(resRes as any);
 
-        mejaChannel = supabase.channel("meja-admin-" + Date.now())
-          .on("postgres_changes", { event: "*", schema: "public", table: "meja" }, payload => {
-            if (payload.new && (payload.new as any).id === "SYSTEM_SETTINGS") {
-              try {
-                const r = payload.new as any;
-                if (r.duration) {
-                  const parsed = JSON.parse(r.duration);
-                  if (parsed.tts_rate !== undefined) {
-                    localStorage.setItem("pawon_tts_rate", String(parsed.tts_rate));
-                    setTtsRate(parsed.tts_rate);
-                  }
-                  if (parsed.tts_pitch !== undefined) {
-                    localStorage.setItem("pawon_tts_pitch", String(parsed.tts_pitch));
-                    setTtsPitch(parsed.tts_pitch);
-                  }
-                  if (parsed.tts_voice_name !== undefined) {
-                    localStorage.setItem("pawon_tts_voice_name", parsed.tts_voice_name);
-                    setTtsVoice(parsed.tts_voice_name);
-                  }
-                }
-              } catch (e) {
-                console.error("Failed to parse settings update", e);
-              }
-              return;
-            }
-            if (payload.eventType === "UPDATE") {
-              const r = payload.new as any;
-              setTables(prev => prev.map(t => t.id === r.id ? { id: r.id, seat: r.seat, status: r.status, pax: r.pax, total: r.total, duration: r.duration, orders: r.orders } : t));
-            }
-          }).subscribe();
-
-        txChannel = supabase.channel("tx-admin-" + Date.now())
-          .on("postgres_changes", { event: "*", schema: "public", table: "transactions" }, payload => {
-            if (payload.eventType === "INSERT") {
-              const r = payload.new as any;
-              const newTx: Transaction = { id: r.id, table_id: r.table_id, items: r.items || [], subtotal: r.subtotal, discount: r.discount, discount_amount: r.discount_amount, tax: r.tax, total: r.total, method: r.method, created_at: r.created_at };
-              setTransactions(prev => [newTx, ...prev].slice(0, 200));
-            } else if (payload.eventType === "UPDATE") {
-              const r = payload.new as any;
-              const updatedTx: Transaction = { id: r.id, table_id: r.table_id, items: r.items || [], subtotal: r.subtotal, discount: r.discount, discount_amount: r.discount_amount, tax: r.tax, total: r.total, method: r.method, created_at: r.created_at };
-              setTransactions(prev => prev.map(tx => tx.id === r.id ? updatedTx : tx));
-            } else if (payload.eventType === "DELETE") {
-              const r = payload.old as any;
-              setTransactions(prev => prev.filter(tx => tx.id !== r.id));
-            }
-          }).subscribe();
-
-        ordersChannel = supabase.channel("orders-admin-" + Date.now())
-          .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, payload => {
-            loadOrders();
-          }).subscribe();
-
-        reservationsChannel = supabase.channel("reservations-admin-" + Date.now())
-          .on("postgres_changes", { event: "*", schema: "public", table: "reservations" }, payload => {
-            if (payload.eventType === "INSERT") {
-              setReservations(prev => [payload.new, ...prev]);
-              if (payload.new.status === "pending") {
-                toast.info(`Reservasi Baru: ${payload.new.name} (${payload.new.type})`, {
-                  position: "top-right",
-                  duration: 5000,
-                });
-                speakRef.current(`Ada reservasi baru atas nama ${payload.new.name}`);
-              }
-            } else if (payload.eventType === "UPDATE") {
-              setReservations(prev => prev.map(r => r.id === payload.new.id ? payload.new : r));
-            } else if (payload.eventType === "DELETE") {
-              setReservations(prev => prev.filter(r => r.id !== payload.old.id));
-            }
-          }).subscribe();
-
+        setConnected(true);
       } catch (err) {
-        console.warn("Supabase tidak terhubung:", err);
+        console.warn('Backend tidak terhubung:', err);
         setConnected(false);
       }
       setSeeding(false);
     }
 
-    initSupabase();
-    return () => {
-      if (mejaChannel) supabase.removeChannel(mejaChannel);
-      if (txChannel) supabase.removeChannel(txChannel);
-      if (ordersChannel) supabase.removeChannel(ordersChannel);
-      if (reservationsChannel) supabase.removeChannel(reservationsChannel);
-    };
+    initBackend();
+    return () => {};
   }, []);
 
   const handleTransaction = useCallback(async (tx: Transaction) => {
-    setTransactions(prev => [tx, ...prev]);
+    setTransactions(prev => [tx, ...prev].slice(0, 200));
     if (connected) {
-      const { error } = await supabase.from("transactions").insert({
+      const res = await createTransaction({
         id: tx.id,
+        table_id: tx.table_id,
         items: tx.items,
-        total: tx.total,
-        created_at: tx.created_at,
+        subtotal: tx.subtotal,
         discount: tx.discount || 0,
         discount_amount: tx.discount_amount || 0,
+        tax: tx.tax,
+        total: tx.total,
         method: tx.method,
-        paymentMethod: tx.method,
-        timestamp: tx.created_at,
-        order_id: tx.order_id
       });
-      if (error) console.error("Error saving transaction:", error);
-
-      // 2. Simpan ke tabel transaction_items (Opsi 2 - Untuk Laporan Real-time)
-      const itemRows = tx.items.map(item => ({
-        transaction_id: tx.id,
-        menu_item_id: item.id,
-        name: item.name,
-        qty: item.qty,
-        price: item.price,
-        total: item.price * item.qty,
-        created_at: tx.created_at
-      }));
-
-      const { error: itemsError } = await supabase.from("transaction_items").insert(itemRows);
-      if (itemsError) console.error("Error saving transaction items:", itemsError);
+      if (!res.ok) console.error('Error saving transaction:', (res.data as any)?.message || 'unknown');
     }
   }, [connected]);
 
   const handleUpdateReservationStatus = useCallback(async (id: string, newStatus: string) => {
     try {
-      const { error } = await supabase
-        .from("reservations")
-        .update({ status: newStatus })
-        .eq("id", id);
-      if (error) throw error;
+      await saveReservation({ id, status: newStatus } as any);
+      setReservations(prev => prev.map(r => r.id === id ? { ...r, status: newStatus } : r));
       toast.success(`Reservasi berhasil di-${newStatus === 'approved' ? 'setujui' : 'tolak'}`);
     } catch (err) {
-      console.error("Failed to update reservation status:", err);
-      toast.error("Gagal mengupdate status reservasi. Coba lagi.");
+      console.error('Failed to update reservation status:', err);
+      toast.error('Gagal mengupdate status reservasi. Coba lagi.');
     }
   }, [connected]);
 
   const handleUpdateTableStatus = useCallback(async (id: string, status: TableData["status"]) => {
     setTables(prev => prev.map(t => t.id === id ? { ...t, status, pax: undefined, total: undefined, duration: undefined, orders: undefined } : t));
     if (connected) {
-      const { error } = await supabase.from("meja").update({ status, pax: null, total: null, duration: null, orders: null }).eq("id", id);
-      if (error) console.error("Error updating table:", error);
+      const res = await updateMejaStatus(id, { status: status as any, pax: null, total: null, duration: null, orders: null });
+      if (res) console.error('Error updating table:', 'unknown');
     }
   }, [connected]);
 
   const handleToggleAvailability = useCallback(async (id: string, available: boolean) => {
     setMenuItems(prev => prev.map(m => m.id === id ? { ...m, available } : m));
     if (connected) {
-      const { error } = await supabase.from("menu_items").update({ available }).eq("id", id);
-      if (error) console.error("Error toggling menu item:", error);
+      await upsertMenuItem({ id, available } as any);
     }
   }, [connected]);
 
@@ -701,21 +553,14 @@ export default function AdminPage() {
         tag: item.tag || null,
         description: item.description || null,
       };
-      if (isNew) {
-        const { error } = await supabase.from("menu_items").insert(row);
-        if (error) console.error("Error inserting menu item:", error);
-      } else {
-        const { error } = await supabase.from("menu_items").update(row).eq("id", item.id);
-        if (error) console.error("Error updating menu item:", error);
-      }
+      await upsertMenuItem(row);
     }
   }, [connected]);
 
   const handleDeleteMenuItem = useCallback(async (id: string) => {
     setMenuItems(prev => prev.filter(m => m.id !== id));
     if (connected) {
-      const { error } = await supabase.from("menu_items").delete().eq("id", id);
-      if (error) console.error("Error deleting menu item:", error);
+      await deleteMenuItem(id);
     }
   }, [connected]);
 

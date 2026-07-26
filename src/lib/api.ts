@@ -63,7 +63,15 @@ export async function apiFetch<T = unknown>(
       init.body = JSON.stringify(body)
     }
   }
-  const res = await fetch(`${base}${path.startsWith('/') ? path : `/${path}`}`, init)
+  let res: Response
+  try {
+    res = await fetch(`${base}${path.startsWith('/') ? path : `/${path}`}`, init)
+  } catch (networkErr) {
+    // Network failure (backend down / wrong port / CORS) -> jangan throw.
+    // Kembalikan ok:false agar caller fallback ke localStorage/seed (mode offline).
+    console.warn('[apiFetch] network error, fallback offline:', (networkErr as Error)?.message)
+    return { ok: false, status: 0, data: null as unknown as T }
+  }
   let data: T
   const text = await res.text()
   try {

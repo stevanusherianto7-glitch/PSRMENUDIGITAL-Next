@@ -80,3 +80,4 @@ backend/vendor/
 backend/.env
 backend/node_modules/
 backend/storage/*.key
+/coverage

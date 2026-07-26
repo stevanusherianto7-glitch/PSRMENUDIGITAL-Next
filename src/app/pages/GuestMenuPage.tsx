@@ -99,6 +99,7 @@ export default function GuestMenuPage() {
   const [selectedEventImage, setSelectedEventImage] = useState<string | null>(null);
   const [eventPhotos, setEventPhotos] = useState<EventPhoto[]>(EVENT_PHOTOS);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
+  const [backendEmpty, setBackendEmpty] = useState(false);
   const [manualTableId, setManualTableId] = useState("");
   const [tableSpoofError, setTableSpoofError] = useState(false);
 
@@ -411,11 +412,14 @@ export default function GuestMenuPage() {
           console.log("[DEBUG] Setting menu items from database merge. count:", finalMenu.length);
           setMenuItems(finalMenu);
           setIsOfflineMode(false);
+          setBackendEmpty(false);
           // Store menu in local offline cache
           localStorage.setItem("pawon_offline_menu", JSON.stringify(finalMenu));
         } else {
           console.log("[DEBUG] Data is empty, setting seed menu...");
           setMenuItems(SEED_MENU.filter(m => m.available));
+          setBackendEmpty(true);
+          setIsOfflineMode(false);
         }
       } catch (e) {
         console.error("[DEBUG] loadMenu caught exception:", e);
@@ -434,6 +438,8 @@ export default function GuestMenuPage() {
           }
         }
         setMenuItems(SEED_MENU.filter(m => m.available));
+        setIsOfflineMode(true);
+        setBackendEmpty(false);
       } finally {
         console.log("[DEBUG] loadMenu finally reached, setting loading false...");
         setLoading(false);
@@ -945,6 +951,13 @@ export default function GuestMenuPage() {
         <div className="bg-[#a76d33] text-white text-center py-2.5 px-4 text-xs font-semibold flex items-center justify-center gap-2 animate-pulse z-40 relative">
           <AlertCircle size={14} />
           <span>Menampilkan Menu Offline (Koneksi Terputus/Lambat)</span>
+        </div>
+      )}
+
+      {backendEmpty && !isOfflineMode && (
+        <div className="bg-[#cc3f47] text-white text-center py-2.5 px-4 text-xs font-semibold flex items-center justify-center gap-2 z-40 relative">
+          <AlertCircle size={14} />
+          <span>Backend Terhubung — Menu Masih Kosong (Menampilkan Contoh)</span>
         </div>
       )}
 

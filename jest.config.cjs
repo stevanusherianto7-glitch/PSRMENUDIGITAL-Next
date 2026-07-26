@@ -3,25 +3,19 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
   testMatch: ['**/__tests__/**/*.test.[jt]s?(x)'],
   moduleNameMapper: {
-    '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
-    '\\.(gif|ttf|eot|svg|png)$': '<rootDir>/src/__tests__/__mocks__/fileMock.js'
-  },
-  transform: {
-    '\\.(tsx|ts|js|jsx)?$': ['babel-jest', { presets: ['react-app'] }]
+    '^@/(.*)$': '<rootDir>/src/$1',
   },
   collectCoverageFrom: [
-    'src/app/**/*.{ts,tsx}',
-    '!src/app/**/*.d.ts',
-    '!src/app/__tests__/**',
-    '!src/app/main.tsx',
-    '!src/app/vite-env.d.ts'
+    '<rootDir>/src/lib/**/*.{ts,tsx}',
+    '!<rootDir>/src/lib/client.ts',
+    '!<rootDir>/src/lib/server.ts',
   ],
   coverageThreshold: {
-    global: {
-      branches: 5,
-      functions: 5,
-      lines: 5,
-      statements: 5
-    }
-  }
+    './src/lib/': {
+      lines: 100,
+      branches: 100,
+      functions: 100,
+      statements: 100,
+    },
+  },
 };

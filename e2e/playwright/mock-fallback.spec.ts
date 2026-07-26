@@ -55,7 +55,7 @@ test.describe('Kedai Elvera 57 - E2E Offline Fallback Flow (Opsi A)', () => {
 
     // 5. Verify it transitions to status screen seamlessly
     await expect(page.locator('h2:has-text("Status Pesanan")')).toBeVisible();
-    await expect(page.locator('text=/Offline|Menunggu Jaringan/i').first()).toBeVisible();
+    await expect(page.getByText(/Offline|Menunggu Jaringan/i).first()).toBeVisible();
   });
 });
 

@@ -7,7 +7,7 @@ Route::get('/', function () {
     return response()->json(['app' => 'PSRMENUDIGITAL Backend', 'status' => 'ok']);
 });
 
-Route::prefix('api/v1')->group(function () {
+Route::prefix('v1')->group(function () {
     // Health
     Route::get('/ping', fn () => response()->json(['pong' => true]));
 

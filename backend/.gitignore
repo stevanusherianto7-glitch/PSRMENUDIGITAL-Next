@@ -1,0 +1,35 @@
+/vendor/
+node_modules/
+/composer.lock
+.phpunit.result.cache
+/.env
+/.env.backup
+/.env.production
+.php-cs-fixer.cache
+/.fleet/
+/.idea
+/.vscode
+/.nova
+/.zed
+
+# Laravel log & cache
+/storage/*.key
+/storage/logs/*
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/framework/testing/*
+!/storage/logs/.gitignore
+!/storage/framework/cache/.gitignore
+!/storage/framework/sessions/.gitignore
+!/storage/framework/views/.gitignore
+
+/bootstrap/cache/*
+!/bootstrap/cache/.gitignore
+
+# SQLite dev database (jangan commit)
+database/*.sqlite
+database/*.sqlite-journal
+
+# Public uploads (Cloudinary proxy, tidak disimpan lokal)
+/public/storage

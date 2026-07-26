@@ -47,11 +47,14 @@
 - [x] `QrMenuModule` event → repository/HTTP.
 - [x] Tombol "Masuk dengan Google" di `LoginPage` → `/api/v1/auth/google`.
 - [x] `fetchPaginatedOrders` → HTTP Laravel.
-- [ ] `PhotoUploader` (bucket Supabase) → `menuUpload.ts` proxy Laravel.
-- [ ] 18 file sisanya yang masih `import supabase` → migrasi per-module (Karyawan, JadwalShift, KalkulatorHPP, Asset, Dashboard, useSupabaseStatus, test).
-- [ ] Hapus `src/lib/supabase.ts` setelah seluruh impor dicabut.
-- [ ] Token Sanctum di storage aman (Capacitor SecureStorage / httpOnly cookie).
-- [ ] E2E jalan dengan `VITE_USE_MOCKS=false` melawan Laravel (atau stub).
+- [x] `PhotoUploader` → `menuUpload.ts` proxy Laravel (hapus `supabase.storage()`).
+- [x] `OrdersModule` realtime channel → poll 15s.
+- [x] `MenuManagement` init bucket Supabase → dihapus (Cloudinary proxy urus).
+- [x] `tokenStorage.ts` (localStorage sync) + AdminPage baca `?token=` Google callback.
+- [ ] 17 file sisa masih `import supabase` → butuh backend Fase 2 (karyawan/shift/asset/dashboard/hpp controllers):
+  - KaryawanModule(6), JadwalShift(5), AssetModule(5), DashboardModule(4), KalkulatorHPP(2), useSupabaseStatus(2), WaiterPage(6), AdminPage(42), GuestMenuPage(5 realtime), tests(12).
+- [ ] Hapus `src/lib/supabase.ts` setelah impor = 0 (BELUM — 26 reference aktif).
+- [ ] E2E jalan dengan `VITE_USE_MOCKS=false` melawan Laravel.
 
 ## Fase 4 — Deployment VPS
 

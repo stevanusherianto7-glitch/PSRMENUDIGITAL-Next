@@ -7,19 +7,18 @@ test('Customer View loads menu from Laravel backend (not offline)', async ({ pag
   // /menu/:tableId (PSRMENUDIGITAL route, bukan /m/)
   await page.goto('http://localhost:4173/menu/test?t=A1', { waitUntil: 'domcontentloaded' })
 
-  // Step 1 welcome: "Masuk Ke Menu"
-  await page.getByRole('button', { name: /Masuk Ke Menu/i }).click()
+  // Dismiss welcome modal bila ada (step 1 -> step 2 -> menu).
+  // Pakai getByText (toleran terhadap icon/role).
+  const masuk = page.getByText(/Masuk Ke Menu/i)
+  if (await masuk.count()) await masuk.first().click()
 
-  // Step 2: pilih tipe pesanan (Dine In / Take Away) lalu "Lanjut"
-  const dineIn = page.getByText('Dine In', { exact: false })
-  if (await dineIn.count()) await dineIn.first().click()
-  const lanjut = page.getByRole('button', { name: /Lanjut/i })
+  const lanjut = page.getByText(/Lanjut/i)
   if (await lanjut.count()) await lanjut.first().click()
 
-  // Tunggu salah satu menu seed muncul (bukan mock timeout).
-  // Menu "Nasi Goreng Jawa" ada di SEED_MENU DAN di backend seed -> harus tampil.
+  // Salah satu menu seed harus tampil (backend riil, bukan mock timeout).
+  // "Nasi Goreng Jawa" ada di SEED_MENU DAN di backend seed -> harus tampil.
   await expect(page.getByText('Nasi Goreng Jawa', { exact: false })).toBeVisible({ timeout: 25000 })
 
   // Badge "offline" tdk boleh muncul (backend reachable).
-  await expect(page.getByText('Menampilkan Menu Offline', { exact: false })).toHaveCount(0)
+  await expect(page.getByText(/Menampilkan Menu Offline/i)).toHaveCount(0)
 })

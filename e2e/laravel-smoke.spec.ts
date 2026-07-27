@@ -4,8 +4,8 @@ import { test, expect } from '@playwright/test'
 // (VITE_API_URL=http://localhost:8080, VITE_USE_MOCKS=false).
 // Backend harus serve /api/v1/menus (8 seed menu: "Nasi Goreng Jawa", dst).
 test('Customer View loads menu from Laravel backend (not offline)', async ({ page }) => {
-  // ?t=A1 = meja (lewati welcome modal)
-  await page.goto('http://localhost:4173/m/test?t=A1', { waitUntil: 'domcontentloaded' })
+  // /menu/:tableId (PSRMENUDIGITAL route, bukan /m/)
+  await page.goto('http://localhost:4173/menu/test?t=A1', { waitUntil: 'domcontentloaded' })
 
   // Step 1 welcome: "Masuk Ke Menu"
   await page.getByRole('button', { name: /Masuk Ke Menu/i }).click()

@@ -45,6 +45,7 @@ export function mapOrder(o: unknown): Order {
     ...obj,
     tableId: (obj.table_id || obj.tableId || "") as string,
     orderMode: (obj.order_mode || obj.orderMode || obj.mode || "dine-in") as OrderMode,
+    created_at: (obj.created_at || obj.createdAt || new Date().toISOString()) as string,
   };
   delete (mapped as Record<string, unknown>).table_id;
   delete (mapped as Record<string, unknown>).order_mode;

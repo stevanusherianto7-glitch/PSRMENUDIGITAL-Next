@@ -86,8 +86,8 @@ jobs:
         run: composer install --no-interaction --no-security-blocking
 
       - name: "🗄️ Setup SQLite + migrate + seed"
-        working-directory: backend
         run: |
+          cd backend
           cp .env.example .env
           touch database/database.sqlite
           php artisan key:generate || true
@@ -97,8 +97,9 @@ jobs:
           DB_DATABASE: database/database.sqlite
 
       - name: "🚀 Start Laravel backend (port 8080)"
-        working-directory: backend
-        run: php artisan serve --port=8080 &
+        run: |
+          cd backend
+          php artisan serve --port=8080 &
         env:
           DB_CONNECTION: sqlite
           DB_DATABASE: database/database.sqlite

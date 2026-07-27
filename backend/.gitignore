@@ -5,6 +5,7 @@ node_modules/
 /.env
 /.env.backup
 /.env.production
+!/.env.example
 .php-cs-fixer.cache
 /.fleet/
 /.idea

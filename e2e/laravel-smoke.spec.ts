@@ -5,7 +5,7 @@ import { test, expect } from '@playwright/test'
 // Backend harus serve /api/v1/menus (8 seed menu: "Nasi Goreng Jawa", dst).
 test('Customer View loads menu from Laravel backend (not offline)', async ({ page }) => {
   // ?t=A1 = meja (lewat welcome modal)
-  await page.goto('http://localhost:5173/m/test?t=A1', { waitUntil: 'domcontentloaded' })
+  await page.goto('http://localhost:4173/m/test?t=A1', { waitUntil: 'domcontentloaded' })
 
   // Tunggu salah satu menu seed muncul (bukan mock timeout).
   // Menu "Nasi Goreng Jawa" ada di SEED_MENU DAN di backend seed -> harus tampil.

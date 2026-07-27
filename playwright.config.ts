@@ -1,32 +1,26 @@
-import { defineConfig, devices } from '@playwright/test';
-import dotenv from 'dotenv';
-import path from 'path';
+import { defineConfig } from '@playwright/test'
 
-// Load environment variables from .env file
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
-
+// Playwright config untuk E2E Laravel Real-API.
+// webServer auto-start `vite preview` (port 4173) sebelum test.
+// Frontend membaca VITE_API_URL=http://localhost:8080 (Laravel backend, jalan terpisah).
 export default defineConfig({
-  testDir: './e2e/playwright',
-  fullyParallel: true,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  testDir: './e2e',
+  timeout: 30000,
+  expect: { timeout: 20000 },
+  fullyParallel: false,
+  retries: 0,
   use: {
-    baseURL: 'http://localhost:5173',
-    trace: 'on-first-retry',
+    baseURL: 'http://localhost:4173',
+    headless: true,
     screenshot: 'only-on-failure',
   },
-  projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
-  ],
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
+    command: 'npx vite preview --port 4173 --strictPort',
+    port: 4173,
+    reuseExistingServer: true,
+    timeout: 60000,
+    stdout: 'ignore',
+    stderr: 'pipe',
   },
-});
+  reporter: [['list']],
+})

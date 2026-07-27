@@ -111,12 +111,6 @@ jobs:
       - name: "🎭 Install Playwright chromium"
         run: npx playwright install --with-deps chromium
 
-      - name: "🚀 Start Vite preview (port 5173)"
-        run: npx vite preview --port 5173 &
-        env:
-          VITE_API_URL: "http://localhost:8080"
-          VITE_USE_MOCKS: "false"
-
       - name: "🎭 Run Playwright E2E (Laravel real-api)"
         run: npx playwright test e2e/laravel-smoke.spec.ts
         env:
